@@ -4,6 +4,7 @@ import {
   fetchKnowledgeBases,
   fetchKnowledgeItem,
   fetchKnowledgeMap,
+  fetchRelatedItems,
   fetchSimilarItems,
 } from "./knowledgeApi";
 
@@ -23,6 +24,10 @@ export function fetchPublishedKnowledgeItem(itemId: string) {
 
 export function fetchSimilarPublishedItems(itemId: string) {
   return fetchSimilarItems(itemId);
+}
+
+export function fetchRelatedPublishedItems(itemId: string) {
+  return fetchRelatedItems(itemId);
 }
 
 export function createUserUploadItem(payload: KnowledgeItemPayload) {

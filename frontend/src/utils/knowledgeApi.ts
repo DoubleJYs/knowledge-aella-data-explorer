@@ -4,6 +4,7 @@ import type {
   KnowledgeItemList,
   KnowledgeItemPayload,
   KnowledgeMapResponse,
+  RelatedKnowledgeItemList,
 } from "~/types/knowledge";
 import { getApiUrl } from "./api";
 
@@ -54,6 +55,10 @@ export function fetchKnowledgeItem(itemId: string): Promise<KnowledgeItem> {
 
 export function fetchSimilarItems(itemId: string): Promise<KnowledgeItemList> {
   return requestJson<KnowledgeItemList>(`/api/items/${itemId}/similar`);
+}
+
+export function fetchRelatedItems(itemId: string): Promise<RelatedKnowledgeItemList> {
+  return requestJson<RelatedKnowledgeItemList>(`/api/items/${itemId}/related`);
 }
 
 export function createUploadItem(

@@ -115,3 +115,15 @@ export type KnowledgeMapResponse = {
 export type KnowledgeItemList = {
   items: KnowledgeItem[];
 };
+
+export type RelatedKnowledgeItem = {
+  item: KnowledgeItem;
+  score: number;
+  relation_type: string;
+  reason: string;
+  evidence: Record<string, unknown>;
+};
+
+export type RelatedKnowledgeItemList = {
+  items: RelatedKnowledgeItem[];
+};

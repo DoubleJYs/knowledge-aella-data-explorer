@@ -44,6 +44,11 @@ from models import (
     PaperSummary,
     PublicTag,
     PublicTagNode,
+    RecommendationRebuildResult,
+    RecommendationRun,
+    RecommendationRunList,
+    RelatedKnowledgeItem,
+    RelatedKnowledgeItemList,
     Tag,
     TagDisableResult,
     TagNode,
@@ -54,6 +59,7 @@ from models import (
     TemporalDataPoint,
     TemporalDataResponse,
 )
+from recommendation_baseline import rebuild_baseline_recommendations
 from tag_seed import DEFAULT_TAG_TREE, flatten_tag_tree, seed_default_tags
 
 # Configure logging
@@ -398,6 +404,53 @@ def _knowledge_map_point_from_row(row: dict[str, Any], tag_ids: Sequence[str] | 
     )
 
 
+def _recommendation_run_from_row(row: dict[str, Any]) -> RecommendationRun:
+    return RecommendationRun(
+        id=row["id"],
+        knowledge_base_id=row["knowledge_base_id"],
+        embedding_model=row["embedding_model"],
+        reranker_model=row["reranker_model"],
+        clustering_algorithm=row["clustering_algorithm"],
+        status=row["status"],
+        item_count=row["item_count"] or 0,
+        started_at=row["started_at"],
+        finished_at=row["finished_at"],
+        error_message=row["error_message"],
+    )
+
+
+def _parse_evidence_json(value: str | None) -> dict[str, Any]:
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _relation_reason(relation_type: str, evidence: dict[str, Any]) -> str:
+    shared_tags = evidence.get("shared_tags") or []
+    shared_keywords = evidence.get("shared_keywords") or []
+    same_cluster = bool(evidence.get("same_cluster"))
+    year_gap = evidence.get("year_gap")
+    coordinate_distance = evidence.get("coordinate_distance")
+
+    if same_cluster:
+        return "同属当前知识聚类，适合作为同主题延伸阅读。"
+    if isinstance(shared_tags, list) and shared_tags:
+        return f"共享标签：{'、'.join(str(tag) for tag in shared_tags[:3])}。"
+    if isinstance(shared_keywords, list) and shared_keywords:
+        return f"标题或摘要共享关键词：{'、'.join(str(keyword) for keyword in shared_keywords[:3])}。"
+    if year_gap is not None:
+        return f"发表年份相近，相差 {year_gap} 年。"
+    if coordinate_distance is not None:
+        return "二维知识地图坐标邻近，可作为相邻主题参考。"
+    if relation_type == "same_topic":
+        return "基础规则判断为同主题资料。"
+    return "基础规则判断为相关资料。"
+
+
 def _ensure_column(conn: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
     columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
     if column_name not in columns:
@@ -522,12 +575,49 @@ def _ensure_knowledge_schema() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS item_relations (
+                id TEXT PRIMARY KEY,
+                source_item_id TEXT NOT NULL,
+                target_item_id TEXT NOT NULL,
+                relation_type TEXT NOT NULL,
+                score REAL NOT NULL DEFAULT 0,
+                evidence_json TEXT NOT NULL DEFAULT '{}',
+                model_name TEXT,
+                run_id TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (source_item_id) REFERENCES knowledge_items(id),
+                FOREIGN KEY (target_item_id) REFERENCES knowledge_items(id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS recommendation_runs (
+                id TEXT PRIMARY KEY,
+                knowledge_base_id TEXT NOT NULL,
+                embedding_model TEXT,
+                reranker_model TEXT,
+                clustering_algorithm TEXT,
+                status TEXT NOT NULL,
+                item_count INTEGER NOT NULL DEFAULT 0,
+                started_at TEXT NOT NULL,
+                finished_at TEXT,
+                error_message TEXT
+            )
+            """
+        )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_tag_group ON tags(tag_group)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_parent_id ON tags(parent_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_slug ON tags(slug)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_is_active ON tags(is_active)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_item_tags_item_id ON item_tags(item_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_item_tags_tag_id ON item_tags(tag_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_item_relations_source ON item_relations(source_item_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_item_relations_target ON item_relations(target_item_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_item_relations_score ON item_relations(score)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_item_relations_run ON item_relations(run_id)")
         _ensure_column(conn, "knowledge_items", "source_path", "TEXT")
         conn.execute(
             """
@@ -2009,6 +2099,50 @@ async def create_knowledge_base(payload: KnowledgeBaseCreate):
     return KnowledgeBase(id=base_id, name=payload.name.strip() or "未命名知识库", description=payload.description, published_count=0, pending_review_count=0, updated_at=now)
 
 
+@app.post(
+    "/api/admin/recommendations/rebuild",
+    response_model=RecommendationRebuildResult,
+)
+async def rebuild_recommendations(
+    knowledge_base_id: str = Query("default", description="知识库 ID"),
+):
+    """Synchronously rebuild SQLite-only baseline recommendation relations."""
+    _ensure_knowledge_schema()
+    with _connect_knowledge_db() as conn:
+        result = rebuild_baseline_recommendations(
+            conn,
+            knowledge_base_id=knowledge_base_id,
+        )
+        conn.commit()
+    return RecommendationRebuildResult(**result)
+
+
+@app.get(
+    "/api/admin/recommendations/runs",
+    response_model=RecommendationRunList,
+)
+async def get_recommendation_runs(
+    knowledge_base_id: str = Query("default", description="知识库 ID"),
+    limit: int = Query(20, ge=1, le=100, description="返回任务记录数量"),
+):
+    """Return baseline recommendation rebuild runs."""
+    _ensure_knowledge_schema()
+    with _connect_knowledge_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM recommendation_runs
+            WHERE knowledge_base_id = ?
+            ORDER BY started_at DESC
+            LIMIT ?
+            """,
+            (knowledge_base_id, limit),
+        ).fetchall()
+    return RecommendationRunList(
+        runs=[_recommendation_run_from_row(dict(row)) for row in rows],
+    )
+
+
 @app.get("/api/map", response_model=KnowledgeMapResponse)
 async def get_knowledge_map(
     request: Request,
@@ -2088,9 +2222,12 @@ async def get_knowledge_item(request: Request, item_id: str):
     if request.scope.get("env") is None:
         _ensure_knowledge_schema()
     db = get_database(request)
-    row = await db.fetch_one("SELECT * FROM knowledge_items WHERE id = ?", (item_id,))
+    row = await db.fetch_one(
+        "SELECT * FROM knowledge_items WHERE id = ? AND review_status = 'published'",
+        (item_id,),
+    )
     if not row:
-        raise HTTPException(status_code=404, detail="未找到知识条目")
+        raise HTTPException(status_code=404, detail="未找到已发布知识条目")
     tag_ids_by_item_id = await _fetch_item_tag_ids_map_from_db(db, [item_id])
     return _knowledge_item_from_row(dict(row), tag_ids_by_item_id.get(item_id, []))
 
@@ -2129,9 +2266,12 @@ async def get_similar_knowledge_items(item_id: str, limit: int = Query(5, descri
     """Return simple same-cluster or nearest-coordinate mock similar items."""
     _ensure_knowledge_schema()
     with _connect_knowledge_db() as conn:
-        source_row = conn.execute("SELECT * FROM knowledge_items WHERE id = ?", (item_id,)).fetchone()
+        source_row = conn.execute(
+            "SELECT * FROM knowledge_items WHERE id = ? AND review_status = 'published'",
+            (item_id,),
+        ).fetchone()
         if not source_row:
-            raise HTTPException(status_code=404, detail="未找到知识条目")
+            raise HTTPException(status_code=404, detail="未找到已发布知识条目")
         source = dict(source_row)
         rows = conn.execute(
             """
@@ -2159,6 +2299,131 @@ async def get_similar_knowledge_items(item_id: str, limit: int = Query(5, descri
         ).fetchall()
         tag_ids_by_item_id = _fetch_item_tag_ids_map(conn, [row["id"] for row in rows])
     return KnowledgeItemList(items=[_knowledge_item_from_row(dict(row), tag_ids_by_item_id.get(row["id"], [])) for row in rows])
+
+
+@app.get("/api/items/{item_id}/related", response_model=RelatedKnowledgeItemList)
+async def get_related_knowledge_items(
+    item_id: str,
+    limit: int = Query(8, ge=1, le=50, description="返回的关联条目数量"),
+):
+    """Return published related items from persisted baseline relations."""
+    _ensure_knowledge_schema()
+    with _connect_knowledge_db() as conn:
+        source_row = conn.execute(
+            """
+            SELECT id, knowledge_base_id
+            FROM knowledge_items
+            WHERE id = ? AND review_status = 'published'
+            """,
+            (item_id,),
+        ).fetchone()
+        if not source_row:
+            raise HTTPException(status_code=404, detail="未找到已发布知识条目")
+
+        relation_rows = conn.execute(
+            """
+            SELECT
+                ir.score,
+                ir.relation_type,
+                ir.evidence_json,
+                target.*
+            FROM item_relations ir
+            INNER JOIN knowledge_items source ON source.id = ir.source_item_id
+            INNER JOIN knowledge_items target ON target.id = ir.target_item_id
+            WHERE
+                ir.source_item_id = ?
+                AND source.review_status = 'published'
+                AND target.review_status = 'published'
+                AND source.knowledge_base_id = target.knowledge_base_id
+            ORDER BY ir.score DESC, ir.created_at DESC
+            LIMIT ?
+            """,
+            (item_id, limit),
+        ).fetchall()
+
+        if relation_rows:
+            tag_ids_by_item_id = _fetch_item_tag_ids_map(
+                conn,
+                [row["id"] for row in relation_rows],
+            )
+            items = []
+            for row in relation_rows:
+                row_dict = dict(row)
+                evidence = _parse_evidence_json(row_dict.get("evidence_json"))
+                relation_type = row_dict["relation_type"]
+                item = _knowledge_item_from_row(
+                    row_dict,
+                    tag_ids_by_item_id.get(row_dict["id"], []),
+                )
+                items.append(
+                    RelatedKnowledgeItem(
+                        item=item,
+                        score=round(float(row_dict["score"] or 0), 4),
+                        relation_type=relation_type,
+                        reason=_relation_reason(relation_type, evidence),
+                        evidence=evidence,
+                    ),
+                )
+            return RelatedKnowledgeItemList(items=items)
+
+        source = dict(source_row)
+        fallback_rows = conn.execute(
+            """
+            SELECT *,
+                CASE
+                    WHEN cluster_id = (
+                        SELECT cluster_id FROM knowledge_items WHERE id = ?
+                    ) THEN 0
+                    ELSE 1
+                END AS cluster_rank,
+                ((x - COALESCE((SELECT x FROM knowledge_items WHERE id = ?), 0))
+                    * (x - COALESCE((SELECT x FROM knowledge_items WHERE id = ?), 0))
+                 + (y - COALESCE((SELECT y FROM knowledge_items WHERE id = ?), 0))
+                    * (y - COALESCE((SELECT y FROM knowledge_items WHERE id = ?), 0))) AS distance_rank
+            FROM knowledge_items
+            WHERE
+                id != ?
+                AND knowledge_base_id = ?
+                AND review_status = 'published'
+                AND x IS NOT NULL
+                AND y IS NOT NULL
+            ORDER BY cluster_rank, distance_rank
+            LIMIT ?
+            """,
+            (
+                item_id,
+                item_id,
+                item_id,
+                item_id,
+                item_id,
+                item_id,
+                source["knowledge_base_id"],
+                limit,
+            ),
+        ).fetchall()
+        tag_ids_by_item_id = _fetch_item_tag_ids_map(
+            conn,
+            [row["id"] for row in fallback_rows],
+        )
+    return RelatedKnowledgeItemList(
+        items=[
+            RelatedKnowledgeItem(
+                item=_knowledge_item_from_row(
+                    dict(row),
+                    tag_ids_by_item_id.get(row["id"], []),
+                ),
+                score=max(0.1, round(1.0 - min(float(row["distance_rank"] or 0) ** 0.5, 900.0) / 900.0, 4)),
+                relation_type="same_cluster" if row["cluster_rank"] == 0 else "semantic_similarity",
+                reason="尚未重建推荐关系，暂用同聚类和坐标邻近规则兜底。",
+                evidence={
+                    "fallback": "similar",
+                    "same_cluster": row["cluster_rank"] == 0,
+                    "coordinate_distance": round(float(row["distance_rank"] or 0) ** 0.5, 4),
+                },
+            )
+            for row in fallback_rows
+        ],
+    )
 
 
 @app.post("/api/uploads", response_model=KnowledgeItem)

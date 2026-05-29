@@ -11,7 +11,11 @@ import {
   getItemTypeLabel,
   getSourceTypeLabel,
 } from "~/components/review/KnowledgeItemForm";
-import { TagBadge } from "~/components/tags/TagBadge";
+import {
+  KnowledgeNodeDetailPanel,
+  KnowledgeNodeDetailStrip,
+} from "~/components/map/KnowledgeNodeDetailPanel";
+import type { DetailTagSection } from "~/components/map/DetailTagsPanel";
 import { Button } from "~/components/ui/Button";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { ErrorState } from "~/components/ui/ErrorState";
@@ -21,11 +25,13 @@ import type {
   KnowledgeItem,
   KnowledgeMapPoint,
   KnowledgeMapResponse,
+  RelatedKnowledgeItem,
 } from "~/types/knowledge";
 import type { Tag, TagGroup, TagNode } from "~/types/tags";
 import { cn } from "~/ui";
 import {
   fetchPublishedKnowledgeItem,
+  fetchRelatedPublishedItems,
   fetchSimilarPublishedItems,
   fetchUserKnowledgeMap,
 } from "~/utils/userKnowledgeApi";
@@ -55,7 +61,7 @@ import {
   UserIcon,
   XIcon,
 } from "lucide-react";
-import type { ReactNode, Ref } from "react";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const DEFAULT_KNOWLEDGE_BASE_ID = "default";
@@ -90,13 +96,6 @@ const MAP_TAG_GROUP_LABELS: Record<TagGroup, string> = {
   report_type: "周报类型",
   research_topic: "研究主题",
   status: "状态标签",
-};
-
-type DetailTagSection = {
-  key: TagGroup | "other" | "legacy";
-  label: string;
-  legacyTags?: string[];
-  tags?: Tag[];
 };
 
 const publicMapAxisIcons: Record<string, ReactNode> = {
@@ -1062,402 +1061,6 @@ function DataCard({
   );
 }
 
-function DetailTagsPanel({
-  onLegacyTagClick,
-  onStructuredTagClick,
-  sections,
-}: {
-  onLegacyTagClick: (tagName: string) => void;
-  onStructuredTagClick: (tagId: string) => void;
-  sections: DetailTagSection[];
-}) {
-  if (sections.length === 0) {
-    return (
-      <div className="text-xs text-stone-500">
-        暂无标签。后台补全后会在这里按组展示。
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {sections.map((section) => (
-        <section key={section.key} className="space-y-1.5">
-          <div className={`
-            text-[11px] font-semibold tracking-[0.08em] text-stone-500
-          `}>
-            {section.label}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {section.tags?.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                className="max-w-full rounded-full text-left"
-                title={`按${section.label}筛选：${tag.name}`}
-                onClick={() => onStructuredTagClick(tag.id)}
-              >
-                <TagBadge
-                  className={`
-                    pointer-events-none border-[#303640] bg-[#151820]
-                    text-stone-300
-                  `}
-                  tag={tag}
-                />
-              </button>
-            ))}
-            {section.legacyTags?.map((tagName) => (
-              <button
-                key={tagName}
-                type="button"
-                className={`
-                  max-w-full rounded-full border border-[#303640] bg-[#151820]
-                  px-2.5 py-1 text-left text-xs text-stone-400 transition-colors
-
-                  hover:border-[#60a5fa]/45 hover:text-stone-200
-                `}
-                title={`按普通标签搜索：${tagName}`}
-                onClick={() => onLegacyTagClick(tagName)}
-              >
-                <span className="block truncate">
-                  {toChineseDisplayText(tagName)}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function SelectedDetailStrip({
-  detailRef,
-  item,
-  onLegacyTagClick,
-  onStructuredTagClick,
-  tagSections,
-  similarItems,
-  showTags = true,
-}: {
-  detailRef?: Ref<HTMLDivElement>;
-  item: KnowledgeItem | null;
-  onLegacyTagClick: (tagName: string) => void;
-  onStructuredTagClick: (tagId: string) => void;
-  tagSections: DetailTagSection[];
-  similarItems: KnowledgeItem[];
-  showTags?: boolean;
-}) {
-  if (!item) return null;
-
-  return (
-    <div
-      ref={detailRef}
-      className={`
-        sticky top-[62px] z-20 border-b border-[#292e37] bg-[#11141a]/95 px-8
-        py-5 shadow-[0_18px_40px_rgba(0,0,0,0.25)] backdrop-blur
-
-        xl:hidden
-      `}
-    >
-      <div className={`
-        grid gap-5
-
-        lg:grid-cols-[minmax(0,1fr)_320px]
-      `}>
-        <div>
-          <div className={`
-            mb-2 text-xs font-semibold uppercase tracking-[0.12em]
-            text-[#60a5fa]
-          `}>
-            已选节点
-          </div>
-          <h2 className="text-lg font-bold text-stone-100">
-            {toChineseDisplayText(item.title)}
-          </h2>
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-stone-400">
-            {toChineseDisplayText(
-              item.content_preview || item.summary || "暂无原文片段。",
-            )}
-          </p>
-          {item.has_source_file && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                className={`
-                  rounded-full border border-[#60a5fa]/45 bg-[#2563eb]/20 px-3
-                  py-1.5 text-xs font-semibold text-[#bfdbfe] transition-colors
-
-                  hover:border-[#93c5fd] hover:text-white
-                `}
-                href={`/api/items/${item.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                在线阅读
-              </a>
-              <a
-                className={`
-                  rounded-full border border-[#2c313b] bg-black/10 px-3 py-1.5
-                  text-xs font-semibold text-stone-300 transition-colors
-
-                  hover:border-[#60a5fa]/50 hover:text-white
-                `}
-                href={`/api/items/${item.id}/pdf?download=true`}
-              >
-                下载 PDF
-              </a>
-            </div>
-          )}
-          <div className={`
-            mt-4 grid gap-2 text-xs text-stone-500
-
-            sm:grid-cols-4
-          `}>
-            <div className={`
-              rounded-[8px] border border-[#2c313b] bg-black/10 px-3 py-2
-            `}>
-              <div className="mb-1 text-stone-400">资料类型</div>
-              <div className="font-semibold text-stone-200">
-                {getItemTypeLabel(item.item_type)}
-              </div>
-            </div>
-            <div className={`
-              rounded-[8px] border border-[#2c313b] bg-black/10 px-3 py-2
-            `}>
-              <div className="mb-1 text-stone-400">来源</div>
-              <div className="line-clamp-1 font-semibold text-stone-200">
-                {toChineseDisplayText(
-                  item.source_name ?? getSourceTypeLabel(item.source_type),
-                )}
-              </div>
-            </div>
-            <div className={`
-              rounded-[8px] border border-[#2c313b] bg-black/10 px-3 py-2
-            `}>
-              <div className="mb-1 text-stone-400">年份</div>
-              <div className="font-semibold text-stone-200">
-                {item.year ?? "未知"}
-              </div>
-            </div>
-            <div className={`
-              rounded-[8px] border border-[#2c313b] bg-black/10 px-3 py-2
-            `}>
-              <div className="mb-1 text-stone-400">可见范围</div>
-              <div className="font-semibold text-stone-200">
-                {item.visibility ?? "课题组可见"}
-              </div>
-            </div>
-          </div>
-          {showTags && (
-            <div className={`
-              mt-4 rounded-[10px] border border-[#2c313b] bg-black/10 p-4
-            `}>
-              <div className="mb-3 text-xs font-semibold text-stone-500">
-                标签
-              </div>
-              <DetailTagsPanel
-                sections={tagSections}
-                onLegacyTagClick={onLegacyTagClick}
-                onStructuredTagClick={onStructuredTagClick}
-              />
-            </div>
-          )}
-        </div>
-        <div className={`
-          rounded-[10px] border border-[#2c313b] bg-black/15 p-4 text-xs
-          text-stone-400
-        `}>
-          <div className="mb-2 font-semibold text-stone-200">相似条目</div>
-          {similarItems.length === 0 ? (
-            <div>暂无相似条目。第一版使用同聚类或坐标邻近的占位结果。</div>
-          ) : (
-            <div className="space-y-2">
-              {similarItems.slice(0, 3).map((similar) => (
-                <div key={similar.id} className="line-clamp-1">
-                  {toChineseDisplayText(similar.title)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FloatingDetailPanel({
-  item,
-  onLegacyTagClick,
-  onClose,
-  onStructuredTagClick,
-  tagSections,
-  similarItems,
-  showTags = true,
-}: {
-  item: KnowledgeItem | null;
-  onLegacyTagClick: (tagName: string) => void;
-  onClose: () => void;
-  onStructuredTagClick: (tagId: string) => void;
-  tagSections: DetailTagSection[];
-  similarItems: KnowledgeItem[];
-  showTags?: boolean;
-}) {
-  if (!item) return null;
-
-  return (
-    <aside className={`
-      fixed right-4 top-[78px] z-40 hidden w-[360px] max-w-[calc(100vw-32px)]
-      overflow-hidden rounded-[18px] border border-[#303640] bg-[#11141a]/95
-      shadow-[0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-xl
-
-      xl:block
-    `}>
-      <div className="border-b border-[#292e37] px-5 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className={`
-              text-xs font-semibold tracking-[0.12em] text-[#60a5fa]
-            `}>
-              节点详情
-            </div>
-            <h2 className={`
-              mt-2 line-clamp-2 text-base font-bold leading-snug text-stone-100
-            `}>
-              {toChineseDisplayText(item.title)}
-            </h2>
-          </div>
-          <button
-            type="button"
-            className={`
-              flex h-8 w-8 shrink-0 items-center justify-center rounded-full
-              border border-[#2c313b] text-stone-500 transition-colors
-
-              hover:border-[#60a5fa]/50 hover:text-stone-200
-            `}
-            onClick={onClose}
-            aria-label="关闭节点详情"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <div className="max-h-[calc(100vh-160px)] overflow-y-auto px-5 py-4">
-        <div className="rounded-[12px] border border-[#2c313b] bg-black/15 p-4">
-          <div className="text-xs font-semibold text-stone-500">摘要</div>
-          <p className="mt-2 text-sm leading-6 text-stone-300">
-            {toChineseDisplayText(item.summary || "该条目已通过管理员审核并进入知识地图。")}
-          </p>
-          {item.has_source_file && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                className={`
-                  rounded-full border border-[#60a5fa]/45 bg-[#2563eb]/20 px-3
-                  py-1.5 text-xs font-semibold text-[#bfdbfe] transition-colors
-
-                  hover:border-[#93c5fd] hover:text-white
-                `}
-                href={`/api/items/${item.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                在线阅读
-              </a>
-              <a
-                className={`
-                  rounded-full border border-[#2c313b] bg-black/10 px-3 py-1.5
-                  text-xs font-semibold text-stone-300 transition-colors
-
-                  hover:border-[#60a5fa]/50 hover:text-white
-                `}
-                href={`/api/items/${item.id}/pdf?download=true`}
-              >
-                下载 PDF
-              </a>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-          {[
-            ["资料类型", getItemTypeLabel(item.item_type)],
-            ["来源类型", getSourceTypeLabel(item.source_type)],
-            ["年份", String(item.year ?? "未知")],
-            ["可见范围", item.visibility ?? "课题组可见"],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className={`
-                rounded-[10px] border border-[#2c313b] bg-black/10 px-3 py-2
-              `}
-            >
-              <div className="text-stone-500">{label}</div>
-              <div className="mt-1 line-clamp-1 font-semibold text-stone-200">
-                {toChineseDisplayText(value)}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {showTags && (
-          <div className="mt-4">
-            <div className="text-xs font-semibold text-stone-500">标签</div>
-            <div className="mt-3">
-              <DetailTagsPanel
-                sections={tagSections}
-                onLegacyTagClick={onLegacyTagClick}
-                onStructuredTagClick={onStructuredTagClick}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className={`
-          mt-4 rounded-[12px] border border-[#2c313b] bg-black/10 p-4
-        `}>
-          <div className="text-xs font-semibold text-stone-500">原文片段</div>
-          <p className="mt-2 line-clamp-5 text-sm leading-6 text-stone-400">
-            {toChineseDisplayText(item.content_preview || "暂无原文片段。")}
-          </p>
-        </div>
-
-        <div className="mt-4">
-          <div className="mb-2 text-xs font-semibold text-stone-500">
-            相似条目
-          </div>
-          <div className="space-y-2">
-            {similarItems.length === 0 ? (
-              <div className={`
-                rounded-[10px] border border-[#2c313b] bg-black/10 p-3 text-xs
-                text-stone-500
-              `}>
-                暂无相似条目。
-              </div>
-            ) : (
-              similarItems.slice(0, 4).map((similar) => (
-                <div
-                  key={similar.id}
-                  className={`
-                    rounded-[10px] border border-[#2c313b] bg-black/10 p-3
-                    text-xs text-stone-400
-                  `}
-                >
-                  <div className="line-clamp-2 font-semibold text-stone-200">
-                    {toChineseDisplayText(similar.title)}
-                  </div>
-                  <div className="mt-1 text-stone-500">
-                    {getItemTypeLabel(similar.item_type)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
 export function UserMapPage({
   initialContentTypeSlug,
   navigate,
@@ -1477,6 +1080,8 @@ export function UserMapPage({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<KnowledgeItem | null>(null);
   const [similarItems, setSimilarItems] = useState<KnowledgeItem[]>([]);
+  const [relatedItems, setRelatedItems] = useState<RelatedKnowledgeItem[]>([]);
+  const [highlightedPointIds, setHighlightedPointIds] = useState<string[]>([]);
   const [tagTree, setTagTree] = useState<TagNode[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedContentTypeSlug, setSelectedContentTypeSlug] = useState(
@@ -1537,15 +1142,20 @@ export function UserMapPage({
     if (!selectedItemId) {
       setSelectedItem(null);
       setSimilarItems([]);
+      setRelatedItems([]);
+      setHighlightedPointIds([]);
       return;
     }
     Promise.all([
       fetchPublishedKnowledgeItem(selectedItemId),
       fetchSimilarPublishedItems(selectedItemId),
+      fetchRelatedPublishedItems(selectedItemId).catch(() => ({ items: [] })),
     ])
-      .then(([item, similar]) => {
+      .then(([item, similar, related]) => {
         setSelectedItem(item);
         setSimilarItems(similar.items);
+        setRelatedItems(related.items);
+        setHighlightedPointIds([]);
       })
       .catch((err: Error) => setError(err.message));
   }, [selectedItemId]);
@@ -1744,15 +1354,20 @@ export function UserMapPage({
     () => getDetailTagSections(selectedItem, tagById),
     [selectedItem, tagById],
   );
+  const clearSelection = () => {
+    setSelectedItemId(null);
+    setSelectedItem(null);
+    setSimilarItems([]);
+    setRelatedItems([]);
+    setHighlightedPointIds([]);
+  };
 
   useEffect(() => {
     if (
       selectedItemId &&
       !displayedPoints.some((point) => point.id === selectedItemId)
     ) {
-      setSelectedItemId(null);
-      setSelectedItem(null);
-      setSimilarItems([]);
+      clearSelection();
     }
   }, [displayedPoints, selectedItemId]);
 
@@ -1764,21 +1379,15 @@ export function UserMapPage({
     setSelectedAxisNodeId(null);
     setAxisDrillPath([]);
     setTimeAxisState(initialTimeAxisState);
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const clearSearch = () => {
     setQuery("");
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const clearTagFilters = () => {
     setSelectedTagIds([]);
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const selectStructuredTagFilter = (tagId: string) => {
     setSelectedTagIds((current) =>
@@ -1794,33 +1403,25 @@ export function UserMapPage({
         ? current.filter((currentId) => currentId !== tagId)
         : [...current, tagId],
     );
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const selectPublicAxisNode = (axisNode: KnowledgeMapAxisNode) => {
     if (axisNode.children?.length && axisDrillPath.length < 3) {
       setAxisDrillPath((current) => [...current, axisNode]);
       setSelectedAxisNodeId(null);
-      setSelectedItemId(null);
-      setSelectedItem(null);
-      setSimilarItems([]);
+      clearSelection();
       return;
     }
 
     setSelectedAxisNodeId((current) =>
       current === axisNode.id ? null : axisNode.id,
     );
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const stepBackAxis = () => {
     setAxisDrillPath((current) => current.slice(0, -1));
     setSelectedAxisNodeId(null);
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const selectTimeAxisNode = (node: TimeAxisNode) => {
     setTimeAxisState((current) => {
@@ -1860,9 +1461,7 @@ export function UserMapPage({
         year: node.range.year,
       };
     });
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const stepBackTimeAxis = () => {
     setTimeAxisState((current) => {
@@ -1874,9 +1473,7 @@ export function UserMapPage({
       }
       return initialTimeAxisState;
     });
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
   };
   const selectContentType = (tag: Tag) => {
     if (tag.slug === selectedContentTypeSlug) return;
@@ -1884,11 +1481,19 @@ export function UserMapPage({
     setSelectedAxisNodeId(null);
     setAxisDrillPath([]);
     setTimeAxisState(initialTimeAxisState);
-    setSelectedItemId(null);
-    setSelectedItem(null);
-    setSimilarItems([]);
+    clearSelection();
     onContentTypeChange?.(tag.slug);
   };
+  const selectRelatedItem = (itemId: string) => {
+    setSelectedItemId(itemId);
+  };
+  const highlightRelatedNodes = () => {
+    setHighlightedPointIds(relatedItems.map((related) => related.item.id));
+  };
+  const clearRelatedHighlight = () => setHighlightedPointIds([]);
+  const highlightedRelated =
+    highlightedPointIds.length > 0 &&
+    relatedItems.some((related) => highlightedPointIds.includes(related.item.id));
 
   return (
     <main className="h-screen overflow-y-auto bg-[#0b0c10] text-stone-100">
@@ -2136,6 +1741,7 @@ export function UserMapPage({
                 axisNodes={publicAxisNodes}
                 points={localizedPoints}
                 clusters={mapData.clusters}
+                highlightedPointIds={highlightedPointIds}
                 selectedPointId={selectedItemId}
                 onPointClick={setSelectedItemId}
                 timeAxisLevel={timeAxisState.level}
@@ -2214,12 +1820,17 @@ export function UserMapPage({
                 )}
               </div>
 
-              <SelectedDetailStrip
+              <KnowledgeNodeDetailStrip
                 detailRef={selectedDetailRef}
                 item={selectedItem}
                 tagSections={detailTagSections}
+                relatedItems={relatedItems}
                 similarItems={similarItems}
+                highlightedRelated={highlightedRelated}
+                onClearRelatedHighlight={clearRelatedHighlight}
                 onLegacyTagClick={searchLegacyTag}
+                onHighlightRelated={highlightRelatedNodes}
+                onRelatedItemClick={selectRelatedItem}
                 onStructuredTagClick={selectStructuredTagFilter}
                 showTags={!publicScreen}
               />
@@ -2256,17 +1867,18 @@ export function UserMapPage({
           </div>
         </section>
       </div>
-      <FloatingDetailPanel
+      <KnowledgeNodeDetailPanel
         item={selectedItem}
         tagSections={detailTagSections}
-        onClose={() => {
-          setSelectedItemId(null);
-          setSelectedItem(null);
-          setSimilarItems([]);
-        }}
+        onClose={clearSelection}
         onLegacyTagClick={searchLegacyTag}
+        onRelatedItemClick={selectRelatedItem}
         onStructuredTagClick={selectStructuredTagFilter}
+        relatedItems={relatedItems}
         similarItems={similarItems}
+        highlightedRelated={highlightedRelated}
+        onClearRelatedHighlight={clearRelatedHighlight}
+        onHighlightRelated={highlightRelatedNodes}
         showTags={!publicScreen}
       />
     </main>

@@ -30,12 +30,23 @@ tasks:
         cd backend;
         ./download_db.sh
 
+  db:sync-local-d1:
+    desc: Copy backend/data/db.sqlite into Wrangler local D1 state
+    cmds:
+      - |
+        cd backend;
+        ./import-to-local-d1.sh
+
   backend:dev:
     desc: Run local dev server (Python)
     cmds:
       - |
         echo "==> Starting local dev server";
         cd backend;
+        ./import-to-local-d1.sh;
+        HOME=/Users/zhangjiyan/Environment/11-logs/aella-data-explorer \
+        XDG_CONFIG_HOME=/Users/zhangjiyan/Environment/11-logs/aella-data-explorer/config \
+        PATH=/Users/zhangjiyan/knowledge_land/aella-data-explorer/frontend/node_modules/.bin:$PATH \
         uv run pywrangler dev
 
   backend:deploy:

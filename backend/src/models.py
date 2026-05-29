@@ -1,5 +1,7 @@
 """Pydantic models for API responses."""
 
+from typing import Any
+
 from pydantic import AliasChoices, BaseModel, Field
 
 
@@ -115,6 +117,52 @@ class KnowledgeItemList(BaseModel):
     """Response containing knowledge items."""
 
     items: list[KnowledgeItem]
+
+
+class RecommendationRun(BaseModel):
+    """One synchronous baseline recommendation rebuild run."""
+
+    id: str
+    knowledge_base_id: str
+    embedding_model: str | None
+    reranker_model: str | None
+    clustering_algorithm: str | None
+    status: str
+    item_count: int
+    started_at: str
+    finished_at: str | None
+    error_message: str | None
+
+
+class RecommendationRunList(BaseModel):
+    """Response containing recommendation rebuild runs."""
+
+    runs: list[RecommendationRun]
+
+
+class RecommendationRebuildResult(BaseModel):
+    """Result returned after rebuilding baseline item relations."""
+
+    run_id: str
+    status: str
+    item_count: int
+    relation_count: int
+
+
+class RelatedKnowledgeItem(BaseModel):
+    """Published related item with baseline recommendation evidence."""
+
+    item: KnowledgeItem
+    score: float
+    relation_type: str
+    reason: str
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class RelatedKnowledgeItemList(BaseModel):
+    """Response containing published related items."""
+
+    items: list[RelatedKnowledgeItem]
 
 
 class TagPayload(BaseModel):

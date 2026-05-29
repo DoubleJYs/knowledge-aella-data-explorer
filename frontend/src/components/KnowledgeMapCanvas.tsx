@@ -15,6 +15,7 @@ type CanvasPoint = KnowledgeMapPoint & {
 type KnowledgeMapCanvasProps = {
   activeAxisNodeId?: string | null;
   axisNodes?: KnowledgeMapAxisNode[];
+  highlightedPointIds?: string[];
   timeAxisLevel?: KnowledgeMapTimeAxisLevel;
   timeAxisRange?: KnowledgeMapTimeAxisRange;
   points: KnowledgeMapPoint[];
@@ -499,6 +500,7 @@ export function KnowledgeMapCanvas({
   axisDomainId = null,
   axisNodes: customAxisNodes,
   clusters,
+  highlightedPointIds = [],
   onPointClick,
   points,
   selectedPointId,
@@ -513,6 +515,10 @@ export function KnowledgeMapCanvas({
     useRef<d3Zoom.ZoomBehavior<HTMLCanvasElement, unknown> | null>(null);
   const [dimensions, setDimensions] = useState({ width: 900, height: 620 });
   const [hoveredPoint, setHoveredPoint] = useState<CanvasPoint | null>(null);
+  const highlightedPointIdSet = useMemo(
+    () => new Set(highlightedPointIds),
+    [highlightedPointIds],
+  );
 
   const colorByCluster = useMemo(() => {
     return new Map(clusters.map((cluster) => [cluster.id, cluster.color]));
@@ -721,7 +727,22 @@ export function KnowledgeMapCanvas({
     context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     context.clearRect(0, 0, dimensions.width, dimensions.height);
     const isODataMap = variant === "odatamap";
-    context.fillStyle = isODataMap ? "#02040a" : "#ffffff";
+    if (isODataMap) {
+      const backgroundGradient = context.createRadialGradient(
+        dimensions.width * 0.58,
+        dimensions.height * 0.44,
+        20,
+        dimensions.width * 0.58,
+        dimensions.height * 0.44,
+        Math.max(dimensions.width, dimensions.height),
+      );
+      backgroundGradient.addColorStop(0, "#091225");
+      backgroundGradient.addColorStop(0.46, "#040813");
+      backgroundGradient.addColorStop(1, "#010208");
+      context.fillStyle = backgroundGradient;
+    } else {
+      context.fillStyle = "#ffffff";
+    }
     context.fillRect(0, 0, dimensions.width, dimensions.height);
 
     if (isODataMap) {
@@ -767,11 +788,15 @@ export function KnowledgeMapCanvas({
         const key = point.axisDomainLabel;
         groupedPoints.set(key, [...(groupedPoints.get(key) ?? []), point]);
       });
+      const hasPointHighlight = highlightedPointIdSet.size > 0;
 
       Array.from(groupedPoints.entries()).forEach(([groupId, groupPoints], groupIndex) => {
         const groupActive =
           Boolean(activeAxisNodeId) &&
           groupPoints.some((point) => point.axisNodeId === activeAxisNodeId);
+        const groupHighlighted =
+          hasPointHighlight &&
+          groupPoints.some((point) => highlightedPointIdSet.has(point.id));
         const centerX =
           groupPoints.reduce((sum, point) => sum + point.canvasX, 0) /
           groupPoints.length;
@@ -783,8 +808,10 @@ export function KnowledgeMapCanvas({
         const angle = ((seed % 42) - 21) * (Math.PI / 180);
 
         context.save();
-        context.globalAlpha = groupActive ? 0.9 : 0.72;
+        context.globalAlpha = groupActive || groupHighlighted ? 0.92 : 0.58;
         groupPoints.forEach((point, pointIndex) => {
+          const pointHighlighted = highlightedPointIdSet.has(point.id);
+          const particleAlphaBoost = pointHighlighted ? 0.18 : 0;
           for (let i = 0; i < 18; i += 1) {
             const particleSeed = seed + pointIndex * 131 + i * 37;
             const theta = (particleSeed % 360) * (Math.PI / 180);
@@ -799,9 +826,12 @@ export function KnowledgeMapCanvas({
               (((particleSeed * 7) % 13) - 6);
             const size = i % 5 === 0 ? 2.6 : 1.7;
 
-            context.fillStyle = withAlpha(color, i % 4 === 0 ? 0.5 : 0.34);
-            context.shadowColor = withAlpha(color, 0.45);
-            context.shadowBlur = i % 5 === 0 ? 5 : 2;
+            context.fillStyle = withAlpha(
+              color,
+              (i % 4 === 0 ? 0.48 : 0.3) + particleAlphaBoost,
+            );
+            context.shadowColor = withAlpha(color, pointHighlighted ? 0.75 : 0.42);
+            context.shadowBlur = pointHighlighted ? 8 : i % 5 === 0 ? 5 : 2;
             context.beginPath();
             context.arc(x, y, size, 0, Math.PI * 2);
             context.fill();
@@ -834,16 +864,59 @@ export function KnowledgeMapCanvas({
 
     canvasPoints.forEach((point) => {
       const isSelected = point.id === selectedPointId;
+      const isHighlighted = highlightedPointIdSet.has(point.id);
+      const hasPointHighlight = highlightedPointIdSet.size > 0;
       const axisActive =
         isODataMap &&
         Boolean(activeAxisNodeId) &&
         point.axisNodeId === activeAxisNodeId;
+      const hasAxisHighlight = isODataMap && Boolean(activeAxisNodeId);
+      const isDimmedByAxis = hasAxisHighlight && !axisActive && !isSelected;
+      const isDimmedByRelated =
+        isODataMap && hasPointHighlight && !isHighlighted && !isSelected;
+      const isDimmed = isDimmedByAxis || isDimmedByRelated;
+      const glowActive = isSelected || isHighlighted || axisActive;
+      const radius = isSelected ? 8.5 : isHighlighted ? 7 : 5;
+      const alpha = isSelected
+        ? 1
+        : glowActive
+          ? 0.98
+          : isDimmed
+            ? 0.28
+            : isODataMap
+              ? 0.82
+              : 0.78;
       context.beginPath();
-      context.arc(point.canvasX, point.canvasY, isSelected ? 8 : 5, 0, Math.PI * 2);
+      if (glowActive && isODataMap) {
+        const glowGradient = context.createRadialGradient(
+          point.canvasX,
+          point.canvasY,
+          1,
+          point.canvasX,
+          point.canvasY,
+          isSelected ? 26 : 20,
+        );
+        glowGradient.addColorStop(0, withAlpha(point.color, 0.48));
+        glowGradient.addColorStop(1, withAlpha(point.color, 0));
+        context.fillStyle = glowGradient;
+        context.globalAlpha = isDimmed ? 0.28 : 1;
+        context.arc(point.canvasX, point.canvasY, isSelected ? 26 : 20, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+      }
+      context.arc(point.canvasX, point.canvasY, radius, 0, Math.PI * 2);
       context.fillStyle = point.color;
       context.shadowColor = isODataMap ? point.color : "transparent";
-      context.shadowBlur = isODataMap ? (isSelected ? 18 : axisActive ? 14 : 8) : 0;
-      context.globalAlpha = isSelected ? 1 : axisActive ? 1 : isODataMap ? 0.86 : 0.78;
+      context.shadowBlur = isODataMap
+        ? isSelected
+          ? 24
+          : isHighlighted
+            ? 20
+            : axisActive
+              ? 16
+              : 7
+        : 0;
+      context.globalAlpha = alpha;
       context.fill();
       context.globalAlpha = 1;
       context.shadowBlur = 0;
@@ -851,11 +924,15 @@ export function KnowledgeMapCanvas({
         ? isODataMap
           ? "#60a5fa"
           : "#0f172a"
+        : isHighlighted && isODataMap
+          ? "#bfdbfe"
         : isODataMap
           ? "rgba(255, 255, 255, 0.42)"
           : "#ffffff";
-      context.lineWidth = isSelected ? 2.5 : 1.5;
+      context.lineWidth = isSelected ? 2.5 : isHighlighted ? 2 : 1.5;
+      context.globalAlpha = isDimmed ? 0.45 : 1;
       context.stroke();
+      context.globalAlpha = 1;
     });
 
     context.restore();
@@ -943,9 +1020,10 @@ export function KnowledgeMapCanvas({
           style={
             variant === "odatamap"
               ? {
-                  background: "rgba(18, 20, 27, 0.94)",
-                  borderColor: "rgba(96, 165, 250, 0.35)",
-                  color: "#f5f5f4",
+                  background: "rgba(7, 12, 24, 0.96)",
+                  borderColor: "rgba(147, 197, 253, 0.52)",
+                  boxShadow: "0 18px 60px rgba(0, 0, 0, 0.46)",
+                  color: "#f8fafc",
                 }
               : undefined
           }
