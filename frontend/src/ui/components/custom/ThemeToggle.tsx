@@ -16,10 +16,14 @@ type ThemeToggleProps = {
 export function ThemeToggle({ trigger }: ThemeToggleProps) {
   const { setTheme, theme } = useTheme();
 
-  const themeLabel = theme
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  const themeLabelMap: Record<string, string> = {
+    system: "跟随系统",
+    light: "浅色",
+    dark: "深色",
+    "retro-light": "复古浅色",
+    "retro-dark": "复古深色",
+  };
+  const themeLabel = themeLabelMap[theme] ?? theme;
 
   return (
     <DropdownMenu>
@@ -28,20 +32,20 @@ export function ThemeToggle({ trigger }: ThemeToggleProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
+          跟随系统
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
+          浅色
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
+          深色
         </DropdownMenuItem>
         <Separator />
         <DropdownMenuItem onClick={() => setTheme("retro-light")}>
-          Retro Light
+          复古浅色
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme("retro-dark")}>
-          Retro Dark
+          复古深色
         </DropdownMenuItem>
         <Separator />
         <p
@@ -51,7 +55,7 @@ export function ThemeToggle({ trigger }: ThemeToggleProps) {
             sm:block
           `}
         >
-          Or press 't' to toggle
+          也可按 t 切换
         </p>
       </DropdownMenuContent>
     </DropdownMenu>

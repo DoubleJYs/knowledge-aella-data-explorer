@@ -15,6 +15,7 @@ import type {
   SummarizationData,
 } from "../types";
 import { getApiUrl } from "../utils/api";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 
 interface PaperDetailProps {
   paperId: number | null;
@@ -45,7 +46,7 @@ export function PaperDetail({
 
     fetch(getApiUrl(`/api/papers/${paperId}`))
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch paper");
+        if (!res.ok) throw new Error("论文获取失败");
         return res.json();
       })
       .then((data: PaperDetailType) => {
@@ -117,14 +118,14 @@ export function PaperDetail({
           <SheetTitle
             className={`text-left text-2xl leading-tight text-foreground`}
           >
-            Paper Details
+            论文详情
           </SheetTitle>
         </SheetHeader>
         <div className="space-y-6">
           {loading && (
-            <p className="text-muted-foreground">Loading paper details...</p>
+            <p className="text-muted-foreground">正在加载论文详情...</p>
           )}
-          {error && <p className="text-destructive">Error: {error}</p>}
+          {error && <p className="text-destructive">错误：{error}</p>}
           {paper && (
             <>
               <div className="rounded-lg border border-border bg-muted/50 p-4">
@@ -134,12 +135,12 @@ export function PaperDetail({
                       mb-3 text-base font-semibold text-card-foreground
                     `}
                   >
-                    Paper Title
+                    论文标题
                   </h3>
                   <h2 className="w-[95%] leading-tight text-foreground">
                     {paper.title === ""
-                      ? "[No title extracted]"
-                      : (paper.title ?? "Untitled")}
+                      ? "[未抽取到标题]"
+                      : (paper.title ?? "无标题")}
                   </h2>
                 </div>
                 <div
@@ -156,7 +157,7 @@ export function PaperDetail({
                         text-muted-foreground
                       `}
                     >
-                      Cluster
+                      聚类
                     </div>
                     <div
                       className={`
@@ -167,7 +168,7 @@ export function PaperDetail({
                         border: `1px solid ${clusterBorderColor}`,
                       }}
                     >
-                      {paper.cluster_label ?? "N/A"}
+                      {getClusterDisplayLabel(paper.cluster_label)}
                     </div>
                   </div>
                   <div>
@@ -177,10 +178,10 @@ export function PaperDetail({
                         text-muted-foreground
                       `}
                     >
-                      Field
+                      领域
                     </div>
                     <div className="py-1 text-sm font-medium text-foreground">
-                      {paper.field_subfield ?? "Unknown"}
+                      {paper.field_subfield ?? "未知"}
                     </div>
                   </div>
                   <div>
@@ -190,10 +191,10 @@ export function PaperDetail({
                         text-muted-foreground
                       `}
                     >
-                      Year
+                      年份
                     </div>
                     <div className="py-1 text-sm font-medium text-foreground">
-                      {paper.publication_year ?? "Unknown"}
+                      {paper.publication_year ?? "未知"}
                     </div>
                   </div>
                 </div>
@@ -215,18 +216,15 @@ export function PaperDetail({
                           hover:underline
                         `}
                       >
-                        View Nearest Papers
+                        查看相近论文
                       </p>
                     </AccordionTrigger>
                     <AccordionContent>
                       <p className="mb-1 text-base text-muted-foreground">
-                        Showing {paper.nearest_papers.length} papers closest to
-                        this one in embedding space, calculated using Euclidean
-                        distance.
+                        正在显示嵌入空间中与本文最接近的 {paper.nearest_papers.length} 篇论文，距离按欧氏距离计算。
                       </p>
                       <p className="mb-4 text-base text-muted-foreground">
-                        These papers are semantically similar based on their
-                        content and methodology.
+                        这些论文在内容和方法上具有较高语义相似度。
                       </p>
                       <div className="space-y-2">
                         {paper.nearest_papers.map((nearPaper) => (
@@ -243,7 +241,7 @@ export function PaperDetail({
                             `}
                           >
                             <div className="font-medium text-card-foreground">
-                              {nearPaper.title ?? "Untitled"}
+                              {nearPaper.title ?? "无标题"}
                             </div>
                             <div
                               className={`
@@ -279,7 +277,7 @@ export function PaperDetail({
                           mb-3 text-base font-semibold text-card-foreground
                         `}
                       >
-                        Authors
+                        作者
                       </h3>
                       <p
                         className={`
@@ -298,7 +296,7 @@ export function PaperDetail({
                         mb-3 text-base font-semibold text-card-foreground
                       `}
                     >
-                      Executive Summary
+                      执行摘要
                     </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {summaryData.summary.executive_summary}
@@ -312,7 +310,7 @@ export function PaperDetail({
                         mb-3 text-base font-semibold text-card-foreground
                       `}
                     >
-                      Research Context
+                      研究背景
                     </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {summaryData.summary.research_context}
@@ -326,7 +324,7 @@ export function PaperDetail({
                         mb-3 text-base font-semibold text-card-foreground
                       `}
                     >
-                      Key Results
+                      关键结果
                     </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {summaryData.summary.key_results}
@@ -340,7 +338,7 @@ export function PaperDetail({
                         mb-3 text-base font-semibold text-card-foreground
                       `}
                     >
-                      Three Takeaways
+                      三点要点
                     </h3>
                     <p
                       className={`
@@ -359,7 +357,7 @@ export function PaperDetail({
                             mb-4 text-base font-semibold text-foreground
                           `}
                         >
-                          Key Claims
+                          关键主张
                         </h3>
                         <div className="space-y-3">
                           {summaryData.summary.claims.map((claim, idx) => (
@@ -374,7 +372,7 @@ export function PaperDetail({
                                   mb-3 font-semibold text-card-foreground
                                 `}
                               >
-                                Claim {idx + 1}
+                                主张 {idx + 1}
                               </h4>
                               <div className="space-y-2">
                                 <div>
@@ -383,7 +381,7 @@ export function PaperDetail({
                                       text-sm font-semibold text-foreground
                                     `}
                                   >
-                                    Details:
+                                    详情：
                                   </span>{" "}
                                   <span
                                     className={`text-sm text-muted-foreground`}
@@ -397,7 +395,7 @@ export function PaperDetail({
                                       text-sm font-semibold text-foreground
                                     `}
                                   >
-                                    Supporting Evidence:
+                                    支持证据：
                                   </span>{" "}
                                   <span
                                     className={`text-sm text-muted-foreground`}
@@ -412,7 +410,7 @@ export function PaperDetail({
                                         text-sm font-semibold text-foreground
                                       `}
                                     >
-                                      Contradicting Evidence:
+                                      相反证据：
                                     </span>{" "}
                                     <span
                                       className={`text-sm text-muted-foreground`}
@@ -427,7 +425,7 @@ export function PaperDetail({
                                       text-sm font-semibold text-foreground
                                     `}
                                   >
-                                    Implications:
+                                    影响：
                                   </span>{" "}
                                   <span
                                     className={`text-sm text-muted-foreground`}

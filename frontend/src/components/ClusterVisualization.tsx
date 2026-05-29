@@ -3,6 +3,7 @@ import type { Data } from "plotly.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Plot from "react-plotly.js";
 import type { ClusterInfo, PaperSummary } from "../types";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 import type { LayoutType } from "../utils/layoutTransforms";
 import {
   applyLayoutTransform,
@@ -122,8 +123,10 @@ export function ClusterVisualization({
     const traces = Array.from(clusterMap.entries()).map(
       ([clusterId, clusterPapers], clusterIndex) => {
         const color = clusterColorMap.get(clusterId) ?? "#cccccc";
-        const clusterLabel =
-          clusterPapers[0]?.cluster_label ?? `Cluster ${clusterId}`;
+        const clusterLabel = getClusterDisplayLabel(
+          clusterPapers[0]?.cluster_label,
+          `聚类 ${clusterId}`,
+        );
 
         // Extract original coordinates
         const originalPoints = clusterPapers.map((p) => ({
@@ -151,15 +154,15 @@ export function ClusterVisualization({
           type: "scatter3d",
           name: clusterLabel,
           hovertemplate: clusterPapers.map((p) => {
-            const title = p.title ?? "Untitled";
+            const title = p.title ?? "无标题";
             const wrappedTitle =
               title.length > 60 ? title.substring(0, 60) + "..." : title;
             return (
-              `Cluster: <b>${clusterLabel}</b><br>` +
+              `聚类：<b>${clusterLabel}</b><br>` +
               `<br>` +
-              `Title: <b>${wrappedTitle}</b><br>` +
-              `Field: ${p.field_subfield ?? "Unknown"}<br>` +
-              `Year: ${p.publication_year ?? "N/A"}<extra></extra>`
+              `标题：<b>${wrappedTitle}</b><br>` +
+              `领域：${p.field_subfield ?? "未知"}<br>` +
+              `年份：${p.publication_year ?? "暂无"}<extra></extra>`
             );
           }),
           hoverlabel: {
@@ -260,8 +263,10 @@ export function ClusterVisualization({
         const centroidY = sumY / transformedPoints.length;
         const centroidZ = sumZ / transformedPoints.length;
 
-        const clusterLabel =
-          clusterPapers[0]?.cluster_label ?? `Cluster ${clusterId}`;
+        const clusterLabel = getClusterDisplayLabel(
+          clusterPapers[0]?.cluster_label,
+          `聚类 ${clusterId}`,
+        );
         const color = clusterColorMap.get(clusterId) ?? "#cccccc";
 
         annotations.push({
@@ -521,7 +526,7 @@ export function ClusterVisualization({
                 color: isDarkTheme ? "#d1d5db" : "#666",
               }}
             >
-              Zoom
+              缩放
             </Label>
             <span
               style={{
@@ -540,7 +545,7 @@ export function ClusterVisualization({
             max={2}
             step={0.1}
             onValueChange={([value]) => value && setZoomLevel(value)}
-            aria-label="Zoom level"
+            aria-label="缩放级别"
             className="my-2"
           />
         </div>
@@ -584,7 +589,7 @@ export function ClusterVisualization({
                   color: isDarkTheme ? "#d1d5db" : "#666",
                 }}
               >
-                Density by Cluster (%)
+                按聚类抽样密度（%）
               </Label>
               <span
                 style={{
@@ -603,7 +608,7 @@ export function ClusterVisualization({
               max={100}
               step={1}
               onValueChange={([value]) => value && setDensityPercent(value)}
-              aria-label="Node density percentage"
+              aria-label="节点密度百分比"
               className="my-1"
             />
           </div>
@@ -631,7 +636,7 @@ export function ClusterVisualization({
                 color: isDarkTheme ? "#d1d5db" : "#666",
               }}
             >
-              Show Labels
+              显示标签
             </Label>
             <Switch
               id="show-labels-toggle"
@@ -651,7 +656,7 @@ export function ClusterVisualization({
               border: isDarkTheme ? "1px solid #374151" : "1px solid #ddd",
             }}
           >
-            Right click + drag to pan | Press 'R' to reset viewpoint
+            右键拖拽平移 | 按 R 重置视角
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import Plot from "react-plotly.js";
 import { clustersDataAtom } from "../state/chartDataCache";
 import type { ClusterInfo, ClustersResponse } from "../types";
 import { getApiUrl } from "../utils/api";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 
 export function DistributionChart({
   onClusterClick,
@@ -64,7 +65,7 @@ export function DistributionChart({
     return [
       {
         type: "bar",
-        x: displayData.map((d) => d.cluster_label),
+        x: displayData.map((d) => getClusterDisplayLabel(d.cluster_label)),
         y: displayData.map((d) => d.count),
         marker: {
           color: displayData.map((d) => d.color),
@@ -74,7 +75,7 @@ export function DistributionChart({
           },
         },
         hovertemplate:
-          "<b>%{x}</b><br>" + "Papers: %{y:,}<br>" + "<extra></extra>",
+          "<b>%{x}</b><br>" + "论文数：%{y:,}<br>" + "<extra></extra>",
         customdata: displayData.map((d) => d.cluster_id),
       },
     ];
@@ -85,7 +86,7 @@ export function DistributionChart({
       autosize: true,
       margin: { l: 100, r: 40, t: 60, b: 120 },
       xaxis: {
-        title: "Research Cluster",
+        title: "研究聚类",
         tickangle: -45,
         automargin: true,
         tickfont: { color: isDarkTheme ? "#d1d5db" : "#333" },
@@ -94,7 +95,7 @@ export function DistributionChart({
       },
       yaxis: {
         title: {
-          text: "Number of Papers",
+          text: "论文数量",
           standoff: 20,
         },
         tickfont: { color: isDarkTheme ? "#d1d5db" : "#333" },
@@ -102,7 +103,7 @@ export function DistributionChart({
         gridcolor: isDarkTheme ? "#374151" : "#e0e0e0",
       },
       title: {
-        text: "Paper Distribution by Research Cluster",
+        text: "按研究聚类统计的论文分布",
         font: {
           size: 18,
           color: isDarkTheme ? "#f9fafb" : "#111",
@@ -118,7 +119,7 @@ export function DistributionChart({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Loading distribution data...</p>
+        <p className="text-muted-foreground">正在加载分布数据...</p>
       </div>
     );
   }
@@ -126,7 +127,7 @@ export function DistributionChart({
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-destructive">Error loading data: {error}</p>
+        <p className="text-destructive">加载数据出错：{error}</p>
       </div>
     );
   }

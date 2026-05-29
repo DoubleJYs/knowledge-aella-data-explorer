@@ -27,9 +27,9 @@ type CopyCodeButtonProps = {
 
 function CopyCodeButton({ onCopy }: CopyCodeButtonProps) {
   return (
-    <Tooltip content="Copy to clipboard">
+    <Tooltip content="复制到剪贴板">
       <Button
-        aria-label="Copy code to clipboard"
+        aria-label="复制代码到剪贴板"
         className="group bg-secondary/80"
         onClick={onCopy}
         size="icon"
@@ -146,7 +146,7 @@ export function CodeBlock({
         void copyToClipboard(codeToClip);
         toast.success({
           description: "Code snippet has been copied to your clipboard.",
-          title: "Code Copied",
+          title: "代码已复制",
         });
         onCopy?.();
       }

@@ -24,7 +24,7 @@ export function CommandBlock({
     toast.success({
       description:
         toastDescription ?? "The command has been copied to your clipboard.",
-      title: "Code Copied",
+      title: "代码已复制",
     });
   };
 
@@ -42,7 +42,7 @@ export function CommandBlock({
         </pre>
       </Row>
       <Col className="h-full items-start">
-        <Tooltip content="Copy to clipboard">
+        <Tooltip content="复制到剪贴板">
           <Button
             className="flex-shrink-0"
             onClick={handleCopy}

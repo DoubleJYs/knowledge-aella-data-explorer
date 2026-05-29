@@ -8,6 +8,7 @@ import {
 } from "../state/chartDataCache";
 import type { ClusterTemporalData, TemporalDataResponse } from "../types";
 import { getApiUrl } from "../utils/api";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 
 interface TemporalStackedChartProps {
   onPaperClick?: (clusterId: number, year: number) => void;
@@ -122,7 +123,7 @@ export function TemporalStackedChart({
     // Calculate total papers per cluster
     const clusterTotals = temporalData.map((cluster) => ({
       cluster_id: cluster.cluster_id,
-      cluster_label: cluster.cluster_label,
+      cluster_label: getClusterDisplayLabel(cluster.cluster_label),
       color: cluster.color,
       total: cluster.temporal_data.reduce((sum, d) => sum + d.count, 0),
       avg_year:
@@ -139,7 +140,7 @@ export function TemporalStackedChart({
       sortedClusters.sort((a, b) => a.avg_year - b.avg_year);
     } else {
       sortedClusters.sort((a, b) =>
-        a.cluster_label.localeCompare(b.cluster_label),
+        a.cluster_label.localeCompare(b.cluster_label, "zh-Hans-CN"),
       );
     }
 
@@ -204,7 +205,7 @@ export function TemporalStackedChart({
 
       traces.push({
         cluster_id: -1,
-        cluster_label: `Other (${otherClusters.length} clusters)`,
+        cluster_label: `其他（${otherClusters.length} 个聚类）`,
         color: "#E8E8E8",
         counts: otherCounts,
       });
@@ -238,7 +239,7 @@ export function TemporalStackedChart({
     const fastestGrowing =
       growthRates.length > 0
         ? growthRates.reduce((max, r) => (r.rate > max.rate ? r : max)).label
-        : "N/A";
+        : "暂无";
 
     return {
       traces,
@@ -262,7 +263,7 @@ export function TemporalStackedChart({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Loading stacked chart data...</p>
+        <p className="text-muted-foreground">正在加载堆叠图数据...</p>
       </div>
     );
   }
@@ -270,7 +271,7 @@ export function TemporalStackedChart({
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-destructive">Error: {error}</p>
+        <p className="text-destructive">错误：{error}</p>
       </div>
     );
   }
@@ -278,7 +279,7 @@ export function TemporalStackedChart({
   if (!processedData) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">No data available</p>
+        <p className="text-muted-foreground">暂无可用数据</p>
       </div>
     );
   }
@@ -300,8 +301,8 @@ export function TemporalStackedChart({
     },
     hovertemplate:
       "<b>%{fullData.name}</b><br>" +
-      "Year: %{x}<br>" +
-      (stackMode === "percentage" ? "Percentage: %{y:.1f}%" : "Papers: %{y}") +
+      "年份：%{x}<br>" +
+      (stackMode === "percentage" ? "占比：%{y:.1f}%" : "论文数：%{y}") +
       "<extra></extra>",
     customdata: Array(years.length).fill(trace.cluster_id),
   }));
@@ -313,7 +314,7 @@ export function TemporalStackedChart({
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Year Range:
+              年份范围：
             </label>
             <Input
               type="number"
@@ -323,7 +324,7 @@ export function TemporalStackedChart({
               min={1990}
               max={2025}
             />
-            <span className="text-sm text-muted-foreground">to</span>
+            <span className="text-sm text-muted-foreground">至</span>
             <Input
               type="number"
               value={maxYear}
@@ -336,7 +337,7 @@ export function TemporalStackedChart({
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Top Clusters:
+              前 N 个聚类：
             </label>
             <Select
               value={topN.toString()}
@@ -352,29 +353,29 @@ export function TemporalStackedChart({
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Stack Mode:
+              堆叠模式：
             </label>
             <Select
               value={stackMode}
               onValueChange={(value) => setStackMode(value as StackMode)}
               options={[
-                { value: "absolute", label: "Absolute Count" },
-                { value: "percentage", label: "Percentage (100%)" },
+                { value: "absolute", label: "绝对数量" },
+                { value: "percentage", label: "百分比（100%）" },
               ]}
             />
           </div>
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Sort By:
+              排序：
             </label>
             <Select
               value={sortBy}
               onValueChange={(value) => setSortBy(value as StackedSortOption)}
               options={[
-                { value: "total", label: "Total Papers" },
-                { value: "average_year", label: "Average Year" },
-                { value: "alphabetical", label: "Alphabetical" },
+                { value: "total", label: "论文总数" },
+                { value: "average_year", label: "平均年份" },
+                { value: "alphabetical", label: "按字母顺序" },
               ]}
             />
           </div>
@@ -383,7 +384,7 @@ export function TemporalStackedChart({
             <Switch
               checked={showOther}
               onCheckedChange={setShowOther}
-              label="Show Other Papers"
+              label="显示其他论文"
               labelClassName="text-sm text-foreground"
             />
           </div>
@@ -397,7 +398,7 @@ export function TemporalStackedChart({
           layout={{
             barmode: "stack",
             xaxis: {
-              title: "Publication Year",
+              title: "发表年份",
               tickfont: { color: isDarkTheme ? "#d1d5db" : "#333" },
               titlefont: { color: isDarkTheme ? "#f9fafb" : "#111" },
               gridcolor: isDarkTheme ? "#374151" : "#e0e0e0",
@@ -405,8 +406,8 @@ export function TemporalStackedChart({
             yaxis: {
               title:
                 stackMode === "percentage"
-                  ? "Percentage of Papers (%)"
-                  : "Number of Papers",
+                  ? "论文占比（%）"
+                  : "论文数量",
               tickfont: { color: isDarkTheme ? "#d1d5db" : "#333" },
               titlefont: { color: isDarkTheme ? "#f9fafb" : "#111" },
               gridcolor: isDarkTheme ? "#374151" : "#e0e0e0",
@@ -461,25 +462,25 @@ export function TemporalStackedChart({
       <div className="border-t border-border bg-background px-6 py-3">
         <div className="flex items-center justify-around text-sm">
           <div>
-            <span className="text-muted-foreground">Total Papers: </span>
+            <span className="text-muted-foreground">论文总数：</span>
             <span className="font-semibold text-foreground">
               {stats.totalPapers.toLocaleString()}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Peak Year: </span>
+            <span className="text-muted-foreground">峰值年份：</span>
             <span className="font-semibold text-foreground">
               {stats.peakYear}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Avg/Year: </span>
+            <span className="text-muted-foreground">年均：</span>
             <span className="font-semibold text-foreground">
               {stats.avgPerYear.toLocaleString()}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Fastest Growing: </span>
+            <span className="text-muted-foreground">增长最快：</span>
             <span className="font-semibold text-foreground">
               {stats.fastestGrowing}
             </span>

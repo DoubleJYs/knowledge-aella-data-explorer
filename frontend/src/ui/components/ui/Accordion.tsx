@@ -25,7 +25,7 @@ const AccordionTrigger = React.forwardRef<
 >(({ children, className, enableFocusStyle = false, ...props }, ref) => (
   <AccordionPrimitive.Header className="flex">
     <AccordionPrimitive.Trigger
-      aria-label={props["aria-label"] ?? "Accordion Trigger"}
+      aria-label={props["aria-label"] ?? "展开或收起"}
       className={cn(
         `
           flex flex-1 items-center py-4 font-medium transition-all

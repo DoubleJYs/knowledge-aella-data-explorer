@@ -2,6 +2,99 @@
 
 Interactive visualization and exploration of scientific papers from the Aella open science dataset.
 
+## Local Adaptation: Knowledge Land
+
+This local checkout is being adapted into **Knowledge Land**, an approval-based research knowledge-base visualization site for universities and research groups. The current local direction is V3.0: split the product into a user-facing Knowledge Portal and an admin-facing Admin Console inside the same React + TypeScript + Vite frontend.
+
+The local product mode is an approval-based knowledge base, not a fully automatic AI platform:
+
+- Users upload research materials into a `pending_review` queue.
+- Administrators review metadata, save drafts, publish, or reject items.
+- Administrators can manually create knowledge nodes without uploading a file.
+- The user-facing map only shows `published` knowledge items.
+- AI / Agent analysis is optional and default-off. The default workflow runs without AI keys, external agents, VPN, vector databases, or external model services.
+
+V3.0 route groups:
+
+- `/app` - user Knowledge Portal dashboard.
+- `/app/map` - published-only two-dimensional knowledge map.
+- `/app/search` - user search entry for published knowledge.
+- `/app/upload` - upload research materials into `pending_review`.
+- `/app/uploads` - user upload status view.
+- `/app/kbs` - user-readable knowledge-base list.
+- `/admin` - Admin Console dashboard.
+- `/admin/review` - review queue for draft, publish, and reject actions.
+- `/admin/manual-entry` - administrator manual item creation.
+- `/admin/knowledge-bases` - knowledge-base management.
+- `/admin/items` - admin item-management entry, currently a V3 placeholder.
+- `/admin/tags` - tag / cluster maintenance entry, currently a V3 placeholder.
+- `/admin/settings` - system settings entry showing AI default-off, currently a V3 placeholder.
+
+Legacy compatibility paths are kept:
+
+- `/` -> `/app`
+- `/upload` -> `/app/upload`
+- `/map` -> `/app/map`
+- `/review` -> `/admin/review`
+- `/manual-entry` -> `/admin/manual-entry`
+- `/knowledge-bases` -> `/admin/knowledge-bases`
+
+Original Aella routes are preserved as experimental / legacy views:
+
+- `/embeddings`
+- `/force-layout`
+- `/distribution-chart`
+- `/paper-explorer`
+- `/heatmap`
+- `/stacked-chart`
+
+Local v1 API additions:
+
+- `GET /api/knowledge-bases`
+- `POST /api/knowledge-bases`
+- `GET /api/map`
+- `GET /api/items/{id}`
+- `GET /api/items/{id}/similar`
+- `POST /api/uploads`
+- `GET /api/review-items`
+- `PATCH /api/review-items/{id}`
+- `POST /api/review-items/{id}/publish`
+- `POST /api/review-items/{id}/reject`
+- `POST /api/admin/items`
+
+The v1 tables are created automatically in the configured local SQLite database as `knowledge_bases` and `knowledge_items`. They are separate from the original Aella `papers` data.
+
+Local V3 frontend architecture notes:
+
+- `frontend/src/KnowledgeApp.tsx` acts as a route dispatcher and legacy compatibility layer.
+- `frontend/src/app/user/UserAppShell.tsx` owns user navigation.
+- `frontend/src/app/admin/AdminAppShell.tsx` owns admin navigation and the mock role guard surface.
+- `frontend/src/utils/userKnowledgeApi.ts` exposes user-side API semantics.
+- `frontend/src/utils/adminKnowledgeApi.ts` exposes admin-side API semantics.
+- Current role separation uses `AppRole = "user" | "admin"` with localStorage. It is not a complete login, JWT, organization, or multi-tenant permission system.
+- See `docs/v3-role-split-architecture.md` for the V3 route table and responsibility boundaries.
+
+Next planned local work:
+
+- Replace V3 placeholder admin pages with explicit `AdminItemsPage`, `AdminTagsPage`, and `AdminSettingsPage` modules.
+- Move map detail-panel internals into `components/map` if the map surface grows further.
+- Improve responsive QA for the map and review workbench.
+- Add optional AI suggestion provider abstractions with a default noop provider, without making AI a core dependency.
+
+Local V3 verification commands:
+
+```sh
+cd frontend
+./node_modules/.bin/tsc --noEmit
+./node_modules/.bin/vite build
+```
+
+```powershell
+Set-Location frontend
+.\node_modules\.bin\tsc --noEmit
+.\node_modules\.bin\vite build
+```
+
 This project is a collaboration between [Inference.net](https://inference.net) and [LAION](https://laion.ai). LAION curated the original dataset which is about ~100m scrapped scientific and research articles and Inference.net fine-tuned a custom model to extract structured summaries from the articles. This repo contains a visual explorer for a small subset of the extracted dataset.
 
 View the live explorer at [https://aella.inference.net](https://aella.inference.net).

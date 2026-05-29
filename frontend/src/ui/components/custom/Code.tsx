@@ -51,7 +51,7 @@ export const Code = forwardRef<HTMLElement, CodeProps>(
         toast.info({
           description: (
             <div className="flex flex-wrap items-center gap-1">
-              <span>Copied</span>
+              <span>已复制</span>
               <ToastSnippet value={valueToCopy} />
             </div>
           ),

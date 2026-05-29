@@ -8,6 +8,7 @@ import {
 } from "../state/chartDataCache";
 import type { ClusterTemporalData, TemporalDataResponse } from "../types";
 import { getApiUrl } from "../utils/api";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 
 interface TemporalHeatmapProps {
   onPaperClick?: (clusterId: number, year: number) => void;
@@ -129,7 +130,7 @@ export function TemporalHeatmap({
     // Calculate total papers per cluster
     const clusterTotals = temporalData.map((cluster) => ({
       cluster_id: cluster.cluster_id,
-      cluster_label: cluster.cluster_label,
+      cluster_label: getClusterDisplayLabel(cluster.cluster_label),
       color: cluster.color,
       total: cluster.temporal_data.reduce((sum, d) => sum + d.count, 0),
       peak_year: cluster.temporal_data.reduce(
@@ -147,7 +148,7 @@ export function TemporalHeatmap({
       sortedClusters.sort((a, b) => b.peak_year - a.peak_year);
     } else {
       sortedClusters.sort((a, b) =>
-        a.cluster_label.localeCompare(b.cluster_label),
+        a.cluster_label.localeCompare(b.cluster_label, "zh-Hans-CN"),
       );
     }
 
@@ -207,7 +208,7 @@ export function TemporalHeatmap({
     const mostActiveYear = Array.from(yearCounts.entries()).reduce((max, e) =>
       e[1] > max[1] ? e : max,
     )[0];
-    const mostActiveCluster = clusterTotals[0]?.cluster_label ?? "N/A";
+    const mostActiveCluster = clusterTotals[0]?.cluster_label ?? "暂无";
 
     // Calculate fastest growing cluster (% increase from first to last year with data)
     const growthRates = clusterTotals
@@ -230,7 +231,7 @@ export function TemporalHeatmap({
     const fastestGrowing =
       growthRates.length > 0
         ? growthRates.reduce((max, r) => (r.rate > max.rate ? r : max)).label
-        : "N/A";
+        : "暂无";
 
     return {
       matrix,
@@ -256,7 +257,7 @@ export function TemporalHeatmap({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Loading heatmap data...</p>
+        <p className="text-muted-foreground">正在加载热力图数据...</p>
       </div>
     );
   }
@@ -264,7 +265,7 @@ export function TemporalHeatmap({
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-destructive">Error: {error}</p>
+        <p className="text-destructive">错误：{error}</p>
       </div>
     );
   }
@@ -272,7 +273,7 @@ export function TemporalHeatmap({
   if (!processedData) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">No data available</p>
+        <p className="text-muted-foreground">暂无可用数据</p>
       </div>
     );
   }
@@ -286,7 +287,7 @@ export function TemporalHeatmap({
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Year Range:
+              年份范围：
             </label>
             <Input
               type="number"
@@ -302,7 +303,7 @@ export function TemporalHeatmap({
               min={1990}
               max={2025}
             />
-            <span className="text-sm text-muted-foreground">to</span>
+            <span className="text-sm text-muted-foreground">至</span>
             <Input
               type="number"
               value={maxYear}
@@ -321,7 +322,7 @@ export function TemporalHeatmap({
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Top Clusters:
+              前 N 个聚类：
             </label>
             <Select
               value={topN.toString()}
@@ -337,32 +338,32 @@ export function TemporalHeatmap({
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Sort By:
+              排序：
             </label>
             <Select
               value={sortBy}
               onValueChange={(value) => setSortBy(value as HeatmapSortOption)}
               options={[
-                { value: "total", label: "Total Papers" },
-                { value: "peak_year", label: "Peak Year" },
-                { value: "alphabetical", label: "Alphabetical" },
+                { value: "total", label: "论文总数" },
+                { value: "peak_year", label: "峰值年份" },
+                { value: "alphabetical", label: "按字母顺序" },
               ]}
             />
           </div>
 
           <div className="flex items-center gap-2">
             <label className="whitespace-nowrap text-sm text-foreground">
-              Color Scale:
+              色阶：
             </label>
             <Select
               value={colorScale}
               onValueChange={(value) => setColorScale(value)}
               options={[
                 { value: "Viridis", label: "Viridis" },
-                { value: "Blues", label: "Blues" },
-                { value: "Reds", label: "Reds" },
-                { value: "Greens", label: "Greens" },
-                { value: "YlOrRd", label: "Yellow-Orange-Red" },
+                { value: "Blues", label: "蓝色" },
+                { value: "Reds", label: "红色" },
+                { value: "Greens", label: "绿色" },
+                { value: "YlOrRd", label: "黄-橙-红" },
                 { value: "Plasma", label: "Plasma" },
               ]}
             />
@@ -372,7 +373,7 @@ export function TemporalHeatmap({
             <Switch
               checked={normalizeByYear}
               onCheckedChange={setNormalizeByYear}
-              label="Normalize by Year"
+              label="按年份归一化"
               labelClassName="text-sm text-foreground"
             />
           </div>
@@ -391,18 +392,18 @@ export function TemporalHeatmap({
               colorscale: colorScale,
               hovertemplate:
                 "<b>%{y}</b><br>" +
-                "Year: %{x}<br>" +
-                (normalizeByYear ? "Percentage: %{z:.1f}%" : "Papers: %{z}") +
+                "年份：%{x}<br>" +
+                (normalizeByYear ? "占比：%{z:.1f}%" : "论文数：%{z}") +
                 "<extra></extra>",
               colorbar: {
-                title: normalizeByYear ? "% of Year" : "Papers",
+                title: normalizeByYear ? "年份占比" : "论文数",
                 titleside: "right",
               },
             },
           ]}
           layout={{
             xaxis: {
-              title: "Publication Year",
+              title: "发表年份",
               tickfont: { color: isDarkTheme ? "#d1d5db" : "#333" },
               titlefont: { color: isDarkTheme ? "#f9fafb" : "#111" },
               gridcolor: isDarkTheme ? "#374151" : "#e0e0e0",
@@ -445,25 +446,25 @@ export function TemporalHeatmap({
       <div className="border-t border-border bg-background px-6 py-3">
         <div className="flex items-center justify-around text-sm">
           <div>
-            <span className="text-muted-foreground">Total Papers: </span>
+            <span className="text-muted-foreground">论文总数：</span>
             <span className="font-semibold text-foreground">
               {stats.totalPapers.toLocaleString()}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Most Active Year: </span>
+            <span className="text-muted-foreground">最活跃年份：</span>
             <span className="font-semibold text-foreground">
               {stats.mostActiveYear}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Largest Cluster: </span>
+            <span className="text-muted-foreground">最大聚类：</span>
             <span className="font-semibold text-foreground">
               {stats.mostActiveCluster}
             </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Fastest Growing: </span>
+            <span className="text-muted-foreground">增长最快：</span>
             <span className="font-semibold text-foreground">
               {stats.fastestGrowing}
             </span>

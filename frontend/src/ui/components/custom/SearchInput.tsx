@@ -17,7 +17,7 @@ export function SearchInput({
   debounceMs = 300,
   defaultValue = "",
   onChange,
-  placeholder = "Search...",
+  placeholder = "搜索...",
 }: SearchInputProps) {
   const [value, setValue] = useState(defaultValue);
 

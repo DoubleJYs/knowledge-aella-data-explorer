@@ -761,7 +761,7 @@ const DateTimePicker = React.forwardRef<
       locale = enUS,
       onChange,
       onMonthChange,
-      placeholder = "Pick a date",
+      placeholder = "选择日期",
       value,
       yearRange = 50,
       ...props

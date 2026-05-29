@@ -7,7 +7,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Router } from "wouter";
 import { LaionHotKeys } from "./components/LaionHotKeys";
-import LaionApp from "./LaionApp";
+import KnowledgeApp from "./KnowledgeApp";
 import "./index.css";
 
 const jotaiStore = createStore();
@@ -30,7 +30,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             storageKey={LOCAL_STORAGE_KEYS.THEME}
           >
             <LaionHotKeys />
-            <LaionApp />
+            <KnowledgeApp />
           </ThemeProvider>
         </JotaiProvider>
       </PostHogProvider>

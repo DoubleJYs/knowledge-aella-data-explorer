@@ -27,15 +27,11 @@ import {
   AtomIcon,
   BarChart3Icon,
   BarChartIcon,
-  BookIcon,
   ChartNetworkIcon,
-  ChevronRightIcon,
-  GithubIcon,
   LayoutGridIcon,
   Menu,
   MicroscopeIcon,
   NetworkIcon,
-  NotebookTextIcon,
   PlusIcon,
   SunMoonIcon,
 } from "lucide-react";
@@ -94,7 +90,7 @@ function SwipeableSheetContent({
         `,
         className,
       )}
-      closeButtonAriaLabel="Close Mobile Navigation Menu"
+      closeButtonAriaLabel="关闭移动端导航菜单"
       onTouchEnd={onTouchEnd}
       onTouchMove={onTouchMove}
       onTouchStart={onTouchStart}
@@ -139,7 +135,7 @@ function SwipeableSheetContent({
         </div>
       </DialogTitle>
       <DialogDescription className="hidden">
-        Navigation menu for dataset controls and cluster legend.
+        数据集控制项和聚类图例导航菜单。
       </DialogDescription>
       <div className="flex-1 overflow-hidden">{children}</div>
     </SheetContent>
@@ -192,13 +188,12 @@ function MobileNavigation({
               className={`mt-0.5 h-5 w-5 flex-shrink-0 text-muted-foreground`}
             />
             <div>
-              <h3 className="text-sm font-semibold">Aella Dataset Explorer</h3>
+              <h3 className="text-sm font-semibold">Aella 数据集探索器</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                This is a dataset of structured summaries from 100,000
-                scientific papers generated using a custom fine-tuned model.
+                这是一个包含 100,000 篇科研论文结构化摘要的数据集，摘要由定制微调模型生成。
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                View on desktop for additional visualizations and more controls.
+                在桌面端查看可使用更多可视化方式和控制项。
               </p>
               <Button
                 type="button"
@@ -210,7 +205,7 @@ function MobileNavigation({
                 size="xs"
                 className="mt-4 flex w-full items-center justify-center gap-2"
               >
-                Interested in the full dataset?
+                想了解完整数据集？
               </Button>
             </div>
           </div>
@@ -230,7 +225,7 @@ function MobileNavigation({
               className="flex w-full items-center gap-2"
             >
               <MicroscopeIcon className="h-4 w-4" />
-              Select a Random Paper
+              随机选择论文
             </Button>
           </div>
         )}
@@ -245,7 +240,7 @@ function MobileNavigation({
                 className="flex w-full items-center gap-2"
               >
                 <SunMoonIcon className="h-4 w-4" />
-                Toggle Theme
+                切换主题
               </Button>
             }
           />
@@ -495,11 +490,11 @@ export default function LaionApp() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
-      setEmailError("Email is required");
+      setEmailError("请输入邮箱");
       return;
     }
     if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email address");
+      setEmailError("请输入有效的邮箱地址");
       return;
     }
 
@@ -533,7 +528,7 @@ export default function LaionApp() {
       }, 1500); // Show success for 1.5 seconds
     } catch (err: unknown) {
       console.error("Error submitting email", err);
-      setEmailError("Failed to submit. Please try again.");
+      setEmailError("提交失败，请重试。");
       setEmailSubmitting(false);
     }
   };
@@ -546,8 +541,8 @@ export default function LaionApp() {
             flex flex-col items-center justify-center gap-6 p-6 py-8 text-xl
           `}
         >
-          <h3 className="font-semibold">Failed to load...</h3>
-          <p className="text-muted-foreground">Please try again later.</p>
+          <h3 className="font-semibold">加载失败</h3>
+          <p className="text-muted-foreground">请稍后重试。</p>
         </Card>
       </Centered>
     );
@@ -619,7 +614,7 @@ export default function LaionApp() {
           <Sheet onOpenChange={setMobileMenuOpen} open={mobileMenuOpen}>
             <SheetTrigger asChild className="lg:hidden">
               <Button
-                aria-label="Open Mobile Navigation Menu"
+                aria-label="打开移动端导航菜单"
                 size="icon"
                 variant="ghost"
               >
@@ -654,20 +649,20 @@ export default function LaionApp() {
           `}
         >
           {loading ? (
-            <span className="text-sm text-muted-foreground">Loading...</span>
+            <span className="text-sm text-muted-foreground">加载中...</span>
           ) : viewMode === "3d" ? (
             <Select
               value={layoutType}
               onValueChange={(value) => setLayoutType(value as LayoutType)}
               options={[
-                { value: "original", label: "Embeddings" },
-                { value: "sphere", label: "Sphere" },
-                { value: "galaxy", label: "Galaxy" },
-                { value: "wave", label: "Wave" },
-                { value: "helix", label: "Helix" },
-                { value: "torus", label: "Torus" },
+                { value: "original", label: "嵌入视图" },
+                { value: "sphere", label: "球面" },
+                { value: "galaxy", label: "星系" },
+                { value: "wave", label: "波形" },
+                { value: "helix", label: "螺旋" },
+                { value: "torus", label: "环面" },
               ]}
-              placeholder="Select layout"
+              placeholder="选择布局"
               className="w-[160px]"
             />
           ) : (
@@ -679,7 +674,7 @@ export default function LaionApp() {
             variant="outline"
           >
             <AtomIcon className="mr-1.5 h-3.5 w-3.5" />
-            What is this?
+            这是什么？
           </Button>
         </div>
       </header>
@@ -692,111 +687,6 @@ export default function LaionApp() {
       >
         <div className="space-y-1 px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <a
-                href="https://inference.net"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex"
-              >
-                <InferenceIcon height={24} width={164} />
-              </a>
-              <PlusIcon className="ml-4 h-4 w-4 text-muted-foreground" />
-              <a
-                href="https://laion.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex"
-              >
-                <img
-                  src={LaionLightLogo}
-                  alt="LAION"
-                  className={`
-                    h-14
-
-                    dark:hidden
-                  `}
-                />
-                <img
-                  src={LaionDarkLogo}
-                  alt="LAION"
-                  className={`
-                    hidden h-14
-
-                    dark:block
-                  `}
-                />
-              </a>
-              <ChevronRightIcon className="mr-3 h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold">Science Dataset Explorer</h2>
-            </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle
-                trigger={
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className={`flex items-center gap-2`}
-                  >
-                    <SunMoonIcon className="h-4 w-4" />
-                    Theme
-                  </Button>
-                }
-              />
-              <Button
-                size="xs"
-                disabled={viewMode === "samples"}
-                variant="outline"
-                onClick={() =>
-                  window.open(
-                    "https://inference.net/blog/project-aella",
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
-              >
-                <BookIcon className="mr-2 h-4 w-4" />
-                Read Blog
-              </Button>
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() =>
-                  window.open(
-                    "https://github.com/context-labs/laion-data-explorer",
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
-              >
-                <GithubIcon className="mr-2 h-4 w-4" />
-                GitHub
-              </Button>
-              <Button
-                size="xs"
-                disabled={viewMode === "samples"}
-                variant="outline"
-                onClick={() =>
-                  setViewMode(viewMode === "samples" ? "3d" : "samples")
-                }
-              >
-                <NotebookTextIcon className="mr-2 h-4 w-4" />
-                Paper Explorer
-              </Button>
-              <Button
-                size="xs"
-                variant="default"
-                onClick={() => setEmailDialogOpen(true)}
-              >
-                Interested in the full dataset?
-              </Button>
-              <Button size="xs" onClick={() => setLearnMoreSheetOpen(true)}>
-                <AtomIcon className="mr-2 h-4 w-4" />
-                What is this?
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -806,7 +696,7 @@ export default function LaionApp() {
                 className="flex w-fit items-center justify-start gap-1.5"
               >
                 <ChartNetworkIcon className="h-3.5 w-3.5" />
-                Embeddings
+                嵌入视图
               </Button>
               <Button
                 type="button"
@@ -816,7 +706,7 @@ export default function LaionApp() {
                 className="flex w-fit items-center justify-start gap-1.5"
               >
                 <NetworkIcon className="h-3.5 w-3.5" />
-                Force Graph
+                力导向图
               </Button>
               <Button
                 type="button"
@@ -826,7 +716,7 @@ export default function LaionApp() {
                 className="flex w-32 items-center gap-1.5"
               >
                 <BarChart3Icon className="h-3.5 w-3.5" />
-                Distribution
+                分布图
               </Button>
               <Button
                 type="button"
@@ -836,7 +726,7 @@ export default function LaionApp() {
                 className="flex w-fit items-center justify-start gap-1.5"
               >
                 <BarChartIcon className="h-3.5 w-3.5" />
-                Stacked
+                堆叠图
               </Button>
               <Button
                 type="button"
@@ -846,7 +736,7 @@ export default function LaionApp() {
                 className="flex w-fit items-center justify-start gap-1.5"
               >
                 <LayoutGridIcon className="h-3.5 w-3.5" />
-                Heatmap
+                热力图
               </Button>
               {viewMode === "3d" && (
                 <span
@@ -856,7 +746,7 @@ export default function LaionApp() {
                     ${!hasOpenedPaperDetail ? "shimmer-text" : ""}
                   `}
                 >
-                  Click + Cmd/Ctrl Key on a cluster node to open paper details
+                  按住 Cmd/Ctrl 并点击聚类节点，可打开论文详情
                 </span>
               )}
             </div>
@@ -869,14 +759,14 @@ export default function LaionApp() {
                       setLayoutType(value as LayoutType)
                     }
                     options={[
-                      { value: "original", label: "Embeddings" },
-                      { value: "sphere", label: "Sphere" },
-                      { value: "galaxy", label: "Galaxy" },
-                      { value: "wave", label: "Wave" },
-                      { value: "helix", label: "Helix" },
-                      { value: "torus", label: "Torus" },
+                      { value: "original", label: "嵌入视图" },
+                      { value: "sphere", label: "球面" },
+                      { value: "galaxy", label: "星系" },
+                      { value: "wave", label: "波形" },
+                      { value: "helix", label: "螺旋" },
+                      { value: "torus", label: "环面" },
                     ]}
-                    placeholder="Select layout"
+                    placeholder="选择布局"
                     className="w-[180px]"
                   />
                   <Button
@@ -887,18 +777,18 @@ export default function LaionApp() {
                     className="flex items-center gap-2"
                   >
                     <MicroscopeIcon className="h-4 w-4" />
-                    Select a Random Paper
+                    随机选择论文
                   </Button>
                 </>
               )}
               {!loading && viewMode === "distribution" && (
                 <div className="flex items-center gap-3">
                   <label className="text-sm text-foreground">
-                    Clusters:{" "}
+                    聚类数：{" "}
                     <span className="font-semibold">{distributionTopN}</span>
                   </label>
                   <Slider
-                    aria-label="Number of clusters to display"
+                    aria-label="要显示的聚类数量"
                     className="w-48"
                     value={[distributionTopN]}
                     min={10}
@@ -984,7 +874,7 @@ export default function LaionApp() {
                         lg:hidden
                       `}
                     >
-                      Loading Visualization...
+                      正在加载可视化...
                     </span>
                   </div>
                 </div>
@@ -1017,7 +907,7 @@ export default function LaionApp() {
                       lg:hidden
                     `}
                   >
-                    Loading Distribution Chart...
+                    正在加载分布图...
                   </span>
                 </div>
               </div>
@@ -1047,7 +937,7 @@ export default function LaionApp() {
                       lg:hidden
                     `}
                   >
-                    Loading Heatmap...
+                    正在加载热力图...
                   </span>
                 </div>
               </div>
@@ -1091,7 +981,7 @@ export default function LaionApp() {
                       lg:hidden
                     `}
                   >
-                    Loading Force Graph...
+                    正在加载力导向图...
                   </span>
                 </div>
               </div>
@@ -1118,7 +1008,7 @@ export default function LaionApp() {
                       lg:hidden
                     `}
                   >
-                    Loading Stacked Chart...
+                    正在加载堆叠图...
                   </span>
                 </div>
               </div>
@@ -1156,9 +1046,9 @@ export default function LaionApp() {
       <DialogRoot open={welcomeDialogOpen} onOpenChange={setWelcomeDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Welcome to the Science Dataset Explorer</DialogTitle>
+            <DialogTitle>欢迎使用科学数据集探索器</DialogTitle>
             <DialogDescription>
-              Explore a comprehensive dataset of scientific research papers
+              探索综合性的科研论文数据集
             </DialogDescription>
           </DialogHeader>
           <div className="p-4">
@@ -1172,10 +1062,10 @@ export default function LaionApp() {
                 setLearnMoreSheetOpen(true);
               }}
             >
-              Learn More
+              了解更多
             </Button>
             <Button onClick={() => setWelcomeDialogOpen(false)}>
-              View Dataset
+              查看数据集
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1200,9 +1090,9 @@ export default function LaionApp() {
           {emailSubmitSuccess ? (
             <>
               <DialogHeader>
-                <DialogTitle>Thank You!</DialogTitle>
+                <DialogTitle>谢谢！</DialogTitle>
                 <DialogDescription>
-                  We've received your information and will keep you updated.
+                  我们已收到你的信息，后续会向你同步更新。
                 </DialogDescription>
               </DialogHeader>
               <div className="flex items-center justify-center p-8">
@@ -1237,19 +1127,18 @@ export default function LaionApp() {
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Stay Updated on the Full Dataset</DialogTitle>
+                <DialogTitle>订阅完整数据集更新</DialogTitle>
                 <DialogDescription>
-                  The full ~50m dataset is currently being processed. Enter your
-                  email below if you would like to be notified with updates.
+                  完整约 5,000 万条数据集仍在处理中。留下邮箱后，我们会在有更新时通知你。
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleEmailSubmit}>
                 <div className="space-y-4 p-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">邮箱</Label>
                     <Input
                       id="email"
-                      placeholder="your@email.com"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
@@ -1274,7 +1163,7 @@ export default function LaionApp() {
                         disabled={emailSubmitting}
                       />
                       <Label htmlFor="full-dataset" className="cursor-pointer">
-                        I'm interested in the full dataset
+                        我对完整数据集感兴趣
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -1290,7 +1179,7 @@ export default function LaionApp() {
                         htmlFor="model-training"
                         className="cursor-pointer"
                       >
-                        I'm interested in custom model-training
+                        我对定制模型训练感兴趣
                       </Label>
                     </div>
                   </div>
@@ -1302,10 +1191,10 @@ export default function LaionApp() {
                     onClick={() => setEmailDialogOpen(false)}
                     disabled={emailSubmitting}
                   >
-                    Cancel
+                    取消
                   </Button>
                   <Button type="submit" disabled={emailSubmitting}>
-                    {emailSubmitting ? "Submitting..." : "Submit"}
+                    {emailSubmitting ? "提交中..." : "提交"}
                   </Button>
                 </DialogFooter>
               </form>

@@ -3,6 +3,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ClusterInfo, PaperSample, PaperSampleList } from "../types";
 import { getApiUrl } from "../utils/api";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 import {
   getPaperIndexFromPath,
   getPathFromViewMode,
@@ -66,7 +67,7 @@ export function PaperSampleViewer({
   useEffect(() => {
     fetch(getApiUrl("/api/samples"))
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch sample IDs");
+        if (!res.ok) throw new Error("样本 ID 获取失败");
         return res.json();
       })
       .then((data: PaperSampleList) => {
@@ -94,7 +95,7 @@ export function PaperSampleViewer({
     setLoadingSample(true);
     fetch(getApiUrl(`/api/samples/${paperId}`))
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch paper sample");
+        if (!res.ok) throw new Error("论文样本获取失败");
         return res.json();
       })
       .then((data: PaperSample) => {
@@ -141,7 +142,7 @@ export function PaperSampleViewer({
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center">
-          <p className="text-lg font-semibold text-destructive">Error</p>
+          <p className="text-lg font-semibold text-destructive">错误</p>
           <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
@@ -152,9 +153,9 @@ export function PaperSampleViewer({
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center">
-          <p className="text-lg font-semibold">No Samples Available</p>
+          <p className="text-lg font-semibold">暂无可用样本</p>
           <p className="text-sm text-muted-foreground">
-            No paper samples found in the database.
+            数据库中未找到论文样本。
           </p>
         </div>
       </div>
@@ -194,14 +195,13 @@ export function PaperSampleViewer({
       >
         <div>
           <Row className="items-center gap-2">
-            <h2 className="text-lg font-semibold">Paper Sample Viewer</h2>
+            <h2 className="text-lg font-semibold">论文样本查看器</h2>
             <p className="text-sm text-muted-foreground">
-              — These summaries are extracted using a custom fine-tuned small
-              model.
+              — 这些摘要由定制微调小模型抽取。
             </p>
           </Row>
           <p className="text-sm text-muted-foreground">
-            Viewing {currentIndex + 1} of {sampleIds.length} Sample Papers
+            正在查看第 {currentIndex + 1} / {sampleIds.length} 篇样本论文
           </p>
         </div>
         <Row className="gap-2">
@@ -212,7 +212,7 @@ export function PaperSampleViewer({
             size="sm"
           >
             <ChevronLeftIcon className="mr-1 h-4 w-4" />
-            Previous
+            上一篇
           </Button>
           <Button
             onClick={handleNext}
@@ -220,7 +220,7 @@ export function PaperSampleViewer({
             variant="outline"
             size="sm"
           >
-            Next
+            下一篇
             <ChevronRightIcon className="ml-1 h-4 w-4" />
           </Button>
           <form
@@ -240,7 +240,7 @@ export function PaperSampleViewer({
               `}
             />
             <Button type="submit" variant="outline" size="sm">
-              Go
+              跳转
             </Button>
           </form>
         </Row>
@@ -268,7 +268,7 @@ export function PaperSampleViewer({
               `}
             >
               <h3 className="mb-3 text-sm font-semibold">
-                Original Paper Sample
+                原始论文样本
               </h3>
               <div>
                 <div
@@ -277,12 +277,12 @@ export function PaperSampleViewer({
                     text-muted-foreground
                   `}
                 >
-                  Extracted Title
+                  抽取标题
                 </div>
                 <div
                   className={`line-clamp-2 text-xs font-medium text-foreground`}
                 >
-                  {currentSample.title ?? "[No title extracted]"}
+                  {currentSample.title ?? "[未抽取到标题]"}
                 </div>
               </div>
             </div>
@@ -307,7 +307,7 @@ export function PaperSampleViewer({
               `}
             >
               <h3 className="mb-3 text-sm font-semibold">
-                Extracted Data (JSON)
+                抽取数据（JSON）
               </h3>
               <div className="flex flex-wrap gap-3">
                 {currentSample.cluster_label && (
@@ -318,7 +318,7 @@ export function PaperSampleViewer({
                         text-muted-foreground
                       `}
                     >
-                      Cluster
+                      聚类
                     </div>
                     <div
                       className={`
@@ -329,7 +329,7 @@ export function PaperSampleViewer({
                         border: `1px solid ${clusterBorderColor}`,
                       }}
                     >
-                      {currentSample.cluster_label}
+                      {getClusterDisplayLabel(currentSample.cluster_label)}
                     </div>
                   </div>
                 )}
@@ -341,7 +341,7 @@ export function PaperSampleViewer({
                         text-muted-foreground
                       `}
                     >
-                      Field
+                      领域
                     </div>
                     <div className="py-1 text-xs font-medium text-foreground">
                       {currentSample.field_subfield}

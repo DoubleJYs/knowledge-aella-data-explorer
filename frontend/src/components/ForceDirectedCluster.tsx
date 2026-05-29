@@ -4,6 +4,7 @@ import * as d3Selection from "d3-selection";
 import * as d3Zoom from "d3-zoom";
 import { useEffect, useRef, useState } from "react";
 import type { ClusterInfo, PaperSummary } from "../types";
+import { getClusterDisplayLabel } from "../utils/clusterLabelTranslations";
 
 interface ForceDirectedClusterProps {
   papers: PaperSummary[];
@@ -98,7 +99,10 @@ export function ForceDirectedCluster({
 
     clusters.forEach((cluster) => {
       clusterColorMap.set(cluster.cluster_id, cluster.color);
-      clusterLabelMap.set(cluster.cluster_id, cluster.cluster_label);
+      clusterLabelMap.set(
+        cluster.cluster_id,
+        getClusterDisplayLabel(cluster.cluster_label),
+      );
       clusterCountMap.set(cluster.cluster_id, 0);
     });
 
@@ -188,7 +192,7 @@ export function ForceDirectedCluster({
     visibleClusterIds.forEach((clusterId) => {
       const clusterPapers = papersByCluster.get(clusterId) ?? [];
       const color = clusterColorMap.get(clusterId) ?? "#cccccc";
-      const label = clusterLabelMap.get(clusterId) ?? `Cluster ${clusterId}`;
+      const label = clusterLabelMap.get(clusterId) ?? `聚类 ${clusterId}`;
 
       if (expandedClusters.has(clusterId)) {
         // Get the cluster node's previous position if it existed
@@ -216,7 +220,7 @@ export function ForceDirectedCluster({
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             clusterId: paper.cluster_id!,
             clusterLabel: label,
-            title: paper.title ?? "Untitled",
+            title: paper.title ?? "无标题",
             color: color,
             field: paper.field_subfield ?? undefined,
             year: paper.publication_year ?? undefined,
@@ -864,7 +868,7 @@ export function ForceDirectedCluster({
                   color: isDarkTheme ? "#d1d5db" : "#666",
                 }}
               >
-                Node Density (%)
+                节点密度（%）
               </Label>
               <span
                 style={{
@@ -883,7 +887,7 @@ export function ForceDirectedCluster({
               max={100}
               step={1}
               onValueChange={([value]) => value && setDensityPercent(value)}
-              aria-label="Node density percentage"
+              aria-label="节点密度百分比"
               className="my-1"
             />
           </div>
@@ -900,9 +904,9 @@ export function ForceDirectedCluster({
               lineHeight: "1.5",
             }}
           >
-            <div>Scroll: zoom | Drag space: pan | Drag node: reposition</div>
+            <div>滚轮：缩放 | 拖拽空白处：平移 | 拖拽节点：重新定位</div>
             <div className="mt-0.5">
-              Cmd/Ctrl+click paper: details | Double-click: expand/collapse
+              Cmd/Ctrl+点击论文：查看详情 | 双击：展开/收起
             </div>
           </div>
           <Button
@@ -912,7 +916,7 @@ export function ForceDirectedCluster({
             size="xs"
             className="flex w-full items-center justify-center gap-2"
           >
-            Reset Layout
+            重置布局
           </Button>
         </div>
       </div>
@@ -945,7 +949,7 @@ export function ForceDirectedCluster({
                 {hoveredNodeDisplay.clusterLabel}
               </div>
               <div style={{ marginBottom: "4px" }}>
-                <strong>Papers:</strong> {hoveredNodeDisplay.paperCount}
+                <strong>论文数：</strong> {hoveredNodeDisplay.paperCount}
               </div>
               <div
                 style={{
@@ -953,16 +957,16 @@ export function ForceDirectedCluster({
                   color: isDarkTheme ? "#9ca3af" : "#6b7280",
                 }}
               >
-                Double-click to expand
+                双击展开
               </div>
             </>
           ) : (
             <>
               <div style={{ fontWeight: "600", marginBottom: "4px" }}>
-                Cluster: {hoveredNodeDisplay.clusterLabel}
+                聚类：{hoveredNodeDisplay.clusterLabel}
               </div>
               <div style={{ marginBottom: "4px" }}>
-                <strong>Title:</strong>{" "}
+                <strong>标题：</strong>{" "}
                 {hoveredNodeDisplay.title &&
                 hoveredNodeDisplay.title.length > 80
                   ? hoveredNodeDisplay.title.substring(0, 80) + "..."
@@ -970,12 +974,12 @@ export function ForceDirectedCluster({
               </div>
               {hoveredNodeDisplay.field && (
                 <div style={{ marginBottom: "4px" }}>
-                  <strong>Field:</strong> {hoveredNodeDisplay.field}
+                  <strong>领域：</strong> {hoveredNodeDisplay.field}
                 </div>
               )}
               {hoveredNodeDisplay.year && (
                 <div>
-                  <strong>Year:</strong> {hoveredNodeDisplay.year}
+                  <strong>年份：</strong> {hoveredNodeDisplay.year}
                 </div>
               )}
             </>

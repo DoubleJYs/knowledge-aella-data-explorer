@@ -106,7 +106,7 @@ const DialogContent = React.forwardRef<
             `}
           >
             <X className="h-6 w-6" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">关闭</span>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </div>
@@ -198,14 +198,14 @@ type DialogProps = {
 
 function Dialog(props: DialogProps) {
   const {
-    cancelTitle = "Cancel",
+    cancelTitle = "取消",
     children,
     className,
     confirmButton,
     confirmButtonVariant = "default",
-    confirmTitle = "Save Changes",
+    confirmTitle = "保存修改",
     dialogDescription,
-    dialogTitle = "Are you sure?",
+    dialogTitle = "确认操作？",
     disabled = false,
     footer,
     forceFocus = false,
@@ -295,7 +295,7 @@ function Dialog(props: DialogProps) {
                 onClick={onConfirm}
                 variant={confirmButtonVariant}
               >
-                {loading ? "Loading..." : confirmTitle}
+                {loading ? "加载中..." : confirmTitle}
               </Button>
             )}
           </DialogFooter>

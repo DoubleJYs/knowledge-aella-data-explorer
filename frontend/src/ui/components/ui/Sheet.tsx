@@ -100,7 +100,7 @@ const SheetContent = React.forwardRef<
     {
       children,
       className,
-      closeButtonAriaLabel = "Close Side Panel",
+      closeButtonAriaLabel = "关闭侧边面板",
       side = "right",
       ...props
     },

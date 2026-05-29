@@ -23,7 +23,7 @@ const Slider = React.forwardRef<
       <SliderPrimitive.Range className="absolute h-full bg-ring" />
     </SliderPrimitive.Track>
     <SliderPrimitive.Thumb
-      aria-label={props["aria-label"] ?? "Slider Thumb"}
+      aria-label={props["aria-label"] ?? "滑块控制点"}
       className={`
         block h-5 w-5 rounded-full border-2 border-ring bg-background
         ring-offset-background transition-colors

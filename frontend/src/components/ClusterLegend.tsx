@@ -2,6 +2,10 @@ import { Button, Input } from "~/ui";
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import type { ClusterInfo } from "../types";
+import {
+  getClusterDisplayLabel,
+  getClusterSearchText,
+} from "../utils/clusterLabelTranslations";
 
 interface ClusterLegendProps {
   clusters: ClusterInfo[];
@@ -36,19 +40,17 @@ export function ClusterLegend({
 }: ClusterLegendProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const sortedClusters = [...clusters].sort(
-    // alphabetically by cluster_label
-    (a, b) => {
-      if (a.cluster_label < b.cluster_label) return -1;
-      if (a.cluster_label > b.cluster_label) return 1;
-      return 0;
-    },
+  const sortedClusters = [...clusters].sort((a, b) =>
+    getClusterDisplayLabel(a.cluster_label).localeCompare(
+      getClusterDisplayLabel(b.cluster_label),
+      "zh-Hans-CN",
+    ),
   );
 
   const filteredClusters = sortedClusters.filter((cluster) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
-    return cluster.cluster_label.toLowerCase().includes(query);
+    return getClusterSearchText(cluster.cluster_label).includes(query);
   });
 
   if (isCollapsed) {
@@ -76,7 +78,7 @@ export function ClusterLegend({
               font-semibold text-foreground
             `}
           >
-            Search Papers
+            搜索论文
             <ChevronLeftIcon
               className={`
                 ml-2 hidden h-4 w-4
@@ -91,23 +93,23 @@ export function ClusterLegend({
           >
             <Input
               type="text"
-              placeholder={`Search ${totalPapers.toLocaleString()} papers...`}
+              placeholder={`搜索 ${totalPapers.toLocaleString()} 篇论文...`}
               value={paperSearchQuery}
               onChange={(e) => onPaperSearchChange(e.target.value)}
               className="h-8 flex-1 text-sm"
             />
             <Button type="submit" size="xs" variant="secondary">
               <SearchIcon className="mr-2 h-4 w-4" />
-              Search
+              搜索
             </Button>
           </form>
         </div>
       )}
       <div className="mb-4">
-        <h3 className="mb-3 font-semibold text-foreground">Dataset Clusters</h3>
+        <h3 className="mb-3 font-semibold text-foreground">数据集聚类</h3>
         <Input
           type="text"
-          placeholder={`Search ${clusters.length.toLocaleString()} clusters...`}
+          placeholder={`搜索 ${clusters.length.toLocaleString()} 个聚类...`}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="mb-3 h-8 text-sm"
@@ -119,7 +121,7 @@ export function ClusterLegend({
             size="xs"
             className="w-full"
           >
-            Select All
+            全选
           </Button>
           <Button
             onClick={onClearAll}
@@ -127,7 +129,7 @@ export function ClusterLegend({
             size="xs"
             className="w-full"
           >
-            Clear All
+            清空
           </Button>
           <Button
             onClick={onSelectRandom}
@@ -135,20 +137,21 @@ export function ClusterLegend({
             size="xs"
             className="w-full"
           >
-            Random
+            随机
           </Button>
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
         {filteredClusters.length === 0 && searchQuery.trim() && (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            No clusters match "{searchQuery}"
+            没有匹配“{searchQuery}”的聚类
           </p>
         )}
         {filteredClusters.map((cluster) => {
           const isSelected =
             selectedClusterIds.size === 0 ||
             selectedClusterIds.has(cluster.cluster_id);
+          const displayLabel = getClusterDisplayLabel(cluster.cluster_label);
 
           return (
             <div
@@ -180,10 +183,10 @@ export function ClusterLegend({
                     font-medium text-foreground
                   `}
                 >
-                  {cluster.cluster_label}
+                  {displayLabel}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {cluster.count.toLocaleString()} papers
+                  {cluster.count.toLocaleString()} 篇论文
                 </div>
               </div>
             </div>
